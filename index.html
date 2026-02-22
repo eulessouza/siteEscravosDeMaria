@@ -5,10 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escravos de Maria</title>
     <link rel="icon" type="image/x-icon" href="/src/favicon.ico">
-    <!-- Styles are imported in `src/main.jsx` and processed by Vite/PostCSS -->
+    <link rel="stylesheet" href="src/index.css">
 </head>
 <body>
     <div id="root"></div>
+    <script>
+      // Script para aplicar tema ANTES do React renderizar (evita flash)
+      try {
+        const saved = localStorage.getItem('theme')
+        // Padrão é light mode (SEM classe dark)
+        if (saved === 'dark') {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+      } catch (e) {}
+    </script>
     <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
