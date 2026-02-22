@@ -28,6 +28,7 @@ import java.util.Map;
     private final DiscordProperties props;
 
     // Frontend chama isso pra iniciar o login
+    @Operation(summary = "Login com Discord", description = "Retorna a URL de autorização do Discord")
     @GetMapping("/discord")
     public ResponseEntity<Map<String, Object>> getAuthUrl(
             @RequestParam(required = false, defaultValue="/") String redirect
@@ -41,6 +42,7 @@ import java.util.Map;
 //    }
 
     // Discord redireciona aqui após o usuário autorizar
+    @Operation(summary = "Callback do Discord", description = "Troca o code pelo JWT")
     @GetMapping("/discord/callback")
     public ResponseEntity<Void> handleCallback(
             @RequestParam String code,
@@ -78,6 +80,7 @@ import java.util.Map;
     }
 
     // Rota pra checar quem está logado
+    @Operation(summary = "Info do usuário", description = "Retorna as informações do usuário do Discord")
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me() {
         var claims = (Claims) SecurityContextHolder.getContext().
