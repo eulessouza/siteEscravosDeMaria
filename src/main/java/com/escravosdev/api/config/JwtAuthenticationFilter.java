@@ -10,7 +10,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import jakarta.servlet.http.Cookie;
+import java.util.Arrays;
 import java.io.IOException;
 import java.util.List;
 
@@ -25,28 +26,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        var authHeader = request.getHeader("Authorization");
+        String token = null;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        // 1. tenta cookie HttpOnly primeiro
+        if (request.getCookies() != null) {
+            token = Arrays.stream(request.getCookies())
+                    .filter(c -> "auth_token".equals(c.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(null);
         }
 
-        try {
-            var token = authHeader.substring(7);
-            var claims = jwtService.validateAndParse(token);
+        // 2. fallback pro header Authorization (testes no Bruno)
+        if (token == null) {
+            var authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+        }
 
-            var auth = new UsernamePasswordAuthenticationToken(
-                    claims.getSubject(),
-                    null,
-                    List.of() // sem authorities por enquanto
-            );
-
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        } catch (Exception e) {
-            // token inválido, deixa passar sem autenticar
+        if (token != null) {
+            try {
+                var claims = jwtService.validateAndParse(token);
+                var auth = new UsernamePasswordAuthenticationToken(
+                        claims, null, List.of()
+                );
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (Exception ignored) {}
         }
 
         filterChain.doFilter(request, response);
+
     }
 }

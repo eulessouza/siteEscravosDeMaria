@@ -21,12 +21,15 @@ public class DiscordService {
     private static final String TOKEN_URL = "https://discord.com/api/oauth2/token";
 
     // Monta a URL que o usuário vai acessar pra logar
-    public String buildAuthorizationUrl() {
+    public String buildAuthorizationUrl(String redirectPath) {
+        var state = URLEncoder.encode(redirectPath != null ? redirectPath : "/", StandardCharsets.UTF_8);
+
         return "https://discord.com/api/oauth2/authorize" +
                 "?client_id=" + props.clientId() +
                 "&redirect_uri=" + URLEncoder.encode(props.redirectUri(), StandardCharsets.UTF_8) +
                 "&response_type=code" +
-                "&scope=identify%20email%20guilds.members.read";
+                "&scope=identify%20email%20guilds.members.read" +
+                "&state="+state;
     }
 
     // Troca o code pelo access token do Discord
