@@ -1,2 +1,11 @@
 node_modules/
 dist/
+API_INTEGRATION.md
+src\config\api.js
+src\config\roles.js
+src\services
+src\data
+.env.example
+.env.local
+src\services\authService.js
+src\config\
