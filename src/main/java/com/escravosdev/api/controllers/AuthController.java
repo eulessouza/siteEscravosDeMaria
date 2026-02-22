@@ -5,6 +5,7 @@ import com.escravosdev.api.entities.DiscordUser;
 import com.escravosdev.api.services.DiscordService;
 import com.escravosdev.api.services.JwtService;
 import io.jsonwebtoken.Claims;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,7 +15,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
@@ -35,11 +35,6 @@ import java.util.Map;
     ) {
         return ResponseEntity.ok(Map.of("url", discordService.buildAuthorizationUrl(redirect)));
     }
-//    public ResponseEntity<Void> redirectToDiscord() {
-//        return ResponseEntity.status(HttpStatus.FOUND)
-//                .header("Location", discordService.buildAuthorizationUrl())
-//                .build();
-//    }
 
     // Discord redireciona aqui após o usuário autorizar
     @Operation(summary = "Callback do Discord", description = "Troca o code pelo JWT")
