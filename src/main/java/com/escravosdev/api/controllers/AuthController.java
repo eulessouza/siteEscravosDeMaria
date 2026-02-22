@@ -4,6 +4,7 @@ import com.escravosdev.api.entities.DiscordProperties;
 import com.escravosdev.api.entities.DiscordUser;
 import com.escravosdev.api.services.DiscordService;
 import com.escravosdev.api.services.JwtService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import java.util.Map;
     private final DiscordProperties props;
 
     // Frontend chama isso pra iniciar o login
+    @Operation(summary = "Login com Discord", description = "Retorna a URL de autorização do Discord")
     @GetMapping("/discord")
     public ResponseEntity<Map<String, Object>> getAuthUrl() {
         return ResponseEntity.ok(Map.of("url", discordService.buildAuthorizationUrl()));
@@ -32,6 +34,7 @@ import java.util.Map;
 //    }
 
     // Discord redireciona aqui após o usuário autorizar
+    @Operation(summary = "Callback do Discord", description = "Troca o code pelo JWT")
     @GetMapping("/discord/callback")
     public ResponseEntity<Map<String, Object>> handleCallback(@RequestParam String code) {
         var accessToken = discordService.exchangeCodeForToken(code);
@@ -62,6 +65,7 @@ import java.util.Map;
     }
 
     // Rota pra checar quem está logado
+    @Operation(summary = "Info do usuário", description = "Retorna as informações do usuário do Discord")
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me(
             @RequestHeader("Authorization") String authHeader
