@@ -3,6 +3,7 @@ package com.escravosdev.api.services;
 import com.escravosdev.api.entities.DiscordUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ public class JwtService {
     private long expiration;
 
     private SecretKey getKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
     public String generateToken(DiscordUser user) {

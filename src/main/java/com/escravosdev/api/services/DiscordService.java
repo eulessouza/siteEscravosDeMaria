@@ -8,6 +8,7 @@ import org.springframework.web.client.RestClient;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -21,8 +22,10 @@ public class DiscordService {
     private static final String TOKEN_URL = "https://discord.com/api/oauth2/token";
 
     // Monta a URL que o usuário vai acessar pra logar
-    public String buildAuthorizationUrl(String redirectPath) {
-        var state = URLEncoder.encode(redirectPath != null ? redirectPath : "/", StandardCharsets.UTF_8);
+    public String buildAuthorizationUrl(String redirectPath, String csrfToken) {
+        // var state = URLEncoder.encode(redirectPath != null ? redirectPath : "/", StandardCharsets.UTF_8);
+        var raw = (redirectPath != null ? redirectPath : "/") + "|" + csrfToken;
+        var state = Base64.getUrlEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
 
         return "https://discord.com/api/oauth2/authorize" +
                 "?client_id=" + props.clientId() +
