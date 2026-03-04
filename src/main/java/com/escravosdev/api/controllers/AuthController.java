@@ -1,10 +1,10 @@
 package com.escravosdev.api.controllers;
 
-import com.escravosdev.api.entities.DiscordProperties;
-import com.escravosdev.api.entities.DiscordRoles;
-import com.escravosdev.api.entities.DiscordUser;
+import com.escravosdev.api.entities.discord.*;
 import com.escravosdev.api.entities.User;
+import com.escravosdev.api.repo.GuildRoleRepo;
 import com.escravosdev.api.repo.UserRepo;
+import com.escravosdev.api.repo.UserRoleRepo;
 import com.escravosdev.api.services.DiscordService;
 import com.escravosdev.api.services.JwtService;
 import io.jsonwebtoken.Claims;
@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +33,8 @@ public class AuthController {
     private final JwtService jwtService;
     private final DiscordProperties props;
     private final UserRepo userRepo;
+    private final GuildRoleRepo guildRoleRepo;
+    private final UserRoleRepo userRoleRepo;
 
     private final Map<String, Long> csrfTokens = new ConcurrentHashMap<>();
 
@@ -69,22 +72,50 @@ public class AuthController {
         var userData = this.discordService.fetchUser(accessToken);
         var userId = (String) userData.get("id");
 
-        var user = this.userRepo.findById(userId).orElse(new User());
+        var user = this.userRepo.findByDiscordId(userId).orElse(new User());
         user.setDiscordId(userId);
         user.setUsername((String) userData.get("username"));
+        user.setGlobalName((String) userData.get("global_name"));
         user.setEmail((String) userData.get("email"));
         user.setAvatarHash((String) userData.get("avatar"));
         user.setLastLogin(Instant.now());
-        this.userRepo.save(user);
 
-        var roles = this.discordService.fetchUserRoles(userId);
+        var allRoleIds = discordService.fetchUserRoles(userId);
+        var guildRoles = guildRoleRepo.findAllById(allRoleIds); // busca as que estão no banco
+        var topColorRole = guildRoles.stream()
+                .filter(r -> r.getColor() != null)
+                .max(Comparator.comparingInt(GuildRole::getPosition))
+                .orElse(null);
+        if (topColorRole != null) {
+            user.setDisplayColor(topColorRole.getGradient() != null
+                    ? topColorRole.getGradient()
+                    : topColorRole.getColor());
+        }
+
+        user.setGender(DiscordProfileRoles.extractGender(allRoleIds));
+        user.setReligion(DiscordProfileRoles.extractReligion(allRoleIds));
+        userRepo.save(user);
+
+        userRoleRepo.deleteByUser(user);
+        var userRoles = guildRoles.stream()
+                .filter(GuildRole::isFunctional)
+                .map(role -> {
+                    var ur = new UserRole();
+                    ur.setUser(user);
+                    ur.setRole(role);
+                    return ur;
+                }).toList();
+        userRoleRepo.saveAll(userRoles);
+
+        var functionalRoleIds = userRoles.stream()
+                .map(ur -> ur.getRole().getId())
+                .toList();
+
         var discordUser = new DiscordUser(
-                userId,
-                user.getUsername(),
-                user.getEmail(),
-                user.getAvatarHash(),
-                roles
+                userId, user.getUsername(), user.getGlobalName(),
+                user.getEmail(), user.getAvatarHash(), functionalRoleIds
         );
+
         var jwt = this.jwtService.generateToken(discordUser);
 
         // token na URL pro front capturar
@@ -101,12 +132,18 @@ public class AuthController {
                 getAuthentication()
                 .getPrincipal();
 
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
         return ResponseEntity.ok(Map.of(
                 "id",           claims.getSubject(),
-                "username",     claims.get("username"),
-                "email",        claims.get("email"),
+                "username",     user.getUsername(),
+                "globalName",   user.getGlobalName() != null ? user.getGlobalName() : "",
+                "email",        user.getEmail(),
                 "avatar",       buildAvatarUrl(claims),
-                "roles",        claims.get("roles"),
+                "displayColor", user.getDisplayColor() != null ? user.getDisplayColor() : "#ffffff",
+                "gender",       user.getGender() != null ? user.getGender() : "",
+                "religion",     user.getReligion() != null ? user.getReligion() : "",
                 "permissions", Map.of(
                         "blog",    Map.of("canPost",   DiscordRoles.canCreateBlogPost(claims),
                                 "canComment", DiscordRoles.canCommentBlog(claims)),

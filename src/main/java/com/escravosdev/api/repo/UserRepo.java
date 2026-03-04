@@ -3,4 +3,9 @@ package com.escravosdev.api.repo;
 import com.escravosdev.api.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepo extends JpaRepository<User, String> {}
+import java.util.Optional;
+import java.util.UUID;
+
+public interface UserRepo extends JpaRepository<User, UUID> {
+    Optional<User> findByDiscordId(String discordId);
+}

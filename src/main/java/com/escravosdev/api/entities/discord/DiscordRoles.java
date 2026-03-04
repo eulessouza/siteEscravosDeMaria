@@ -1,30 +1,33 @@
-package com.escravosdev.api.entities;
+package com.escravosdev.api.entities.discord;
 
 import io.jsonwebtoken.Claims;
 
 import java.util.List;
+import java.util.Set;
 
 public class DiscordRoles {
-    public static final String CONDE = "1456875804204990637";
-    public static final String MARQUES = "1456875744209797131";
-    public static final String DUQUE = "1456875359860424775";
-    public static final String AUTORIDADE_REAL = "1458280546684768397";
-    public static final String REI = "1461556222766354483";
-    public static final String ROLE_SECRETA = "1470857348556914899";
 
-    public static final String ORIENTADOR = "1463258112118100020";
+    public static final String REI             = "1461556222766354483";
+    public static final String AUTORIDADE_REAL = "1458280546684768397";
+    public static final String DUQUE           = "1456875359860424775";
+    public static final String MARQUES         = "1456875744209797131";
+    public static final String CONDE           = "1456875804204990637";
+    public static final String ORIENTADOR      = "1463258112118100020";
+    public static final String ADM_ORACOES     = "1457183789607293010";
+    public static final String SENHOR_FEUDAL   = "1457159160574775576";
+    public static final String ROLE_SECRETA    = "1470857348556914899";
 
     private static final List<String> ADM_ROLES = List.of(
-            CONDE, MARQUES, DUQUE, AUTORIDADE_REAL, REI, ROLE_SECRETA
+            REI, AUTORIDADE_REAL, DUQUE, ROLE_SECRETA, MARQUES, CONDE
     );
 
-    private static final List<String> POST_ROLES = List.of(
-            CONDE, MARQUES, DUQUE, AUTORIDADE_REAL, REI, ROLE_SECRETA, ORIENTADOR
+    // todas as roles que o sistema conhece
+    public static final Set<String> ALL_KNOWN_ROLES = Set.of(
+            REI, AUTORIDADE_REAL, DUQUE, ROLE_SECRETA, MARQUES, CONDE,
+            ORIENTADOR, ADM_ORACOES, SENHOR_FEUDAL
     );
 
     private DiscordRoles() {}
-
-    // -- base --
 
     public static boolean isAdm(Claims claims) {
         var roles = (List<?>) claims.get("roles");
@@ -42,17 +45,10 @@ public class DiscordRoles {
         return roles != null && roles.contains(roleId);
     }
 
-    public static boolean canPost(Claims claims) {
-        var roles = (List<?>) claims.get("roles");
-        if (roles == null) return false;
-        return POST_ROLES.stream().anyMatch(roles::contains);
-    }
-
     // --- blog ---
     public static boolean canCreateBlogPost(Claims claims) {
         return isAdm(claims);
     }
-
     public static boolean canCommentBlog(Claims claims) {
         return claims != null;
     }
@@ -61,7 +57,6 @@ public class DiscordRoles {
     public static boolean canCreateForumPost(Claims claims) {
         return claims != null;
     }
-
     public static boolean canCommentForum(Claims claims) {
         return claims != null;
     }
@@ -70,7 +65,6 @@ public class DiscordRoles {
     public static boolean canCreateDuvida(Claims claims) {
         return claims != null;
     }
-
     public static boolean canAnswerDuvida(Claims claims) {
         return isOrientador(claims) || isAdm(claims);
     }

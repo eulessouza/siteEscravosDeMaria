@@ -1,6 +1,6 @@
 package com.escravosdev.api.config;
 
-import com.escravosdev.api.entities.DiscordRoles;
+import com.escravosdev.api.entities.discord.DiscordRoles;
 import com.escravosdev.api.services.JwtService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -8,16 +8,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.task.TaskExecutionProperties;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import jakarta.servlet.http.Cookie;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.io.IOException;
 import java.util.List;
 

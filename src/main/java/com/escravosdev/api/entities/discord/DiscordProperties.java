@@ -1,4 +1,4 @@
-package com.escravosdev.api.entities;
+package com.escravosdev.api.entities.discord;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

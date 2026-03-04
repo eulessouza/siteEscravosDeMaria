@@ -124,6 +124,14 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.8.5</version>
 		</dependency>
+
+
+		<!-- Bot -->
+		<dependency>
+			<groupId>net.dv8tion</groupId>
+			<artifactId>JDA</artifactId>
+			<version>5.2.1</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>

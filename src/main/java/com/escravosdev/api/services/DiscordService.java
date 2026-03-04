@@ -1,6 +1,6 @@
 package com.escravosdev.api.services;
 
-import com.escravosdev.api.entities.DiscordProperties;
+import com.escravosdev.api.entities.discord.DiscordProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,8 @@ public class DiscordService {
                 "&redirect_uri=" + URLEncoder.encode(props.redirectUri(), StandardCharsets.UTF_8) +
                 "&response_type=code" +
                 "&scope=identify%20email%20guilds.members.read" +
-                "&state="+state;
+                "&guild_id=" + props.guildId() +
+                "&state=" + state;
     }
 
     // Troca o code pelo access token do Discord
@@ -74,5 +75,13 @@ public class DiscordService {
             // Usuário não está no servidor
             return List.of();
         }
+    }
+
+    public List<Map<String, Object>> fetchGuildRoles() {
+        return restClient.get()
+                .uri(DISCORD_API + "/guilds/" + props.guildId() + "/roles")
+                .header("Authorization", "Bot " + props.botToken())
+                .retrieve()
+                .body(List.class);
     }
 }
