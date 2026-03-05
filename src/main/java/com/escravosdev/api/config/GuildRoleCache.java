@@ -2,13 +2,16 @@ package com.escravosdev.api.config;
 
 import com.escravosdev.api.entities.discord.DiscordProperties;
 import com.escravosdev.api.entities.discord.GuildRole;
+import com.escravosdev.api.repo.CsrfTokenRepo;
 import com.escravosdev.api.repo.GuildRoleRepo;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -22,9 +25,12 @@ public class GuildRoleCache {
     private final DiscordProperties props;
     private final RestClient restClient = RestClient.create();
 
+    private final CsrfTokenRepo csrfTokenRepo;
+
     private static final String DISCORD_API = "https://discord.com/api/v10";
     private static final String CDN = "https://cdn.discordapp.com";
 
+    @Transactional
     @Scheduled(fixedRateString = "PT30M")
     public void sync() {
         log.info("Sincronizando roles do servidor via API REST...");
@@ -91,5 +97,10 @@ public class GuildRoleCache {
         } catch (Exception e) {
             log.error("Erro ao sincronizar roles: {}", e.getMessage());
         }
+    }
+
+    @Scheduled(fixedRate = 3600000)
+    public void cleanExpiredCsrf() {
+        csrfTokenRepo.deleteByCreatedAtBefore(Instant.now().minus(Duration.ofMinutes(31)));
     }
 }

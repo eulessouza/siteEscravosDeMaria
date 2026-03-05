@@ -1,5 +1,7 @@
 package com.escravosdev.api.entities;
 
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,9 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "posts", indexes = {
@@ -50,7 +50,7 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
-    private List<PostImage> images = new ArrayList<>();
+    private Set<PostImage> images = new HashSet<>();
 
     // --- categoria e tags ---
     @ManyToOne(fetch = FetchType.LAZY)
@@ -63,7 +63,7 @@ public class Post {
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
-    private List<Tag> tags = new ArrayList<>();
+    private Set<Tag> tags = new HashSet<>();
 
     // --- publicação — só BLOG usa ---
     private boolean publishToSite      = true;

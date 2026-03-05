@@ -1,4 +1,4 @@
-package com.escravosdev.api.dtos;
+package com.escravosdev.api.dtos.request;
 
 import java.util.List;
 

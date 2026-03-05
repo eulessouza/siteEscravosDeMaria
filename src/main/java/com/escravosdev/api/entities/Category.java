@@ -1,5 +1,6 @@
 package com.escravosdev.api.entities;
 
+import com.escravosdev.api.entities.enums.PostType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

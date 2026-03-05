@@ -1,8 +1,8 @@
-package com.escravosdev.api.dtos;
+package com.escravosdev.api.dtos.response;
 
 import com.escravosdev.api.entities.Post;
-import com.escravosdev.api.entities.PostStatus;
-import com.escravosdev.api.entities.PostType;
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,7 +16,7 @@ public record PostResponse (
         String content,
         String coverImageUrl,
         List<String> imageUrls,
-        AuthorResponse author,
+        UserResponse author,
         CategoryResponse category,
         List<String> tags,
         boolean publishToSite,
@@ -25,16 +25,6 @@ public record PostResponse (
         Instant createdAt,
         Instant updatedAt
 ) {
-    public record AuthorResponse(
-            String discordId,
-            String username,
-            String globalName,
-            String avatarUrl,
-            String displayColor,
-            String gender,
-            String religion
-    ) {}
-
     public record CategoryResponse(
             UUID id,
             String name,
@@ -42,15 +32,7 @@ public record PostResponse (
     ) {}
 
     public static PostResponse from(Post post) {
-        var author = new AuthorResponse(
-                post.getAuthor().getDiscordId(),
-                post.getAuthor().getUsername(),
-                post.getAuthor().getGlobalName(),
-                buildAvatarUrl(post.getAuthor().getDiscordId(), post.getAuthor().getAvatarHash()),
-                post.getAuthor().getDisplayColor(),
-                post.getAuthor().getGender(),
-                post.getAuthor().getReligion()
-        );
+        var author = UserResponse.from(post.getAuthor());
 
         var category = post.getCategory() != null
                 ? new CategoryResponse(
@@ -85,11 +67,4 @@ public record PostResponse (
                 post.getUpdatedAt()
         );
     }
-
-    private static String buildAvatarUrl(String discordId, String hash) {
-        if (hash == null || hash.isBlank()) return null;
-        var ext = hash.startsWith("a_") ? "gif" : "png";
-        return "https://cdn.discordapp.com/avatars/" + discordId + "/" + hash + "." + ext;
-    }
-
 }

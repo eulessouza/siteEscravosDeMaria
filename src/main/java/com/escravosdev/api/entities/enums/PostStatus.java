@@ -1,4 +1,4 @@
-package com.escravosdev.api.entities;
+package com.escravosdev.api.entities.enums;
 
 public enum PostStatus {
     DRAFT,             // rascunho — só blog usa
