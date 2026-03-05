@@ -22,6 +22,9 @@ public record PostResponse (
         boolean publishToSite,
         boolean publishToDiscord,
         boolean publishToInstagram,
+        long upvotes,
+        long downvotes,
+        String userVote,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -31,7 +34,7 @@ public record PostResponse (
             String slug
     ) {}
 
-    public static PostResponse from(Post post) {
+    public static PostResponse from(Post post, VoteResponse votes) {
         var author = UserResponse.from(post.getAuthor());
 
         var category = post.getCategory() != null
@@ -63,8 +66,15 @@ public record PostResponse (
                 post.isPublishToSite(),
                 post.isPublishToDiscord(),
                 post.isPublishToInstagram(),
+                votes != null ? votes.upvotes() : 0,
+                votes != null ? votes.downvotes() : 0,
+                votes != null ? votes.userVote() : null,
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );
+    }
+
+    public static PostResponse from(Post post) {
+        return from(post, null);
     }
 }

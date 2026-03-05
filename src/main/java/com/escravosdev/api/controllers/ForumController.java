@@ -26,10 +26,13 @@ public class ForumController {
 
     @Operation(summary = "Listar posts do fórum")
     @GetMapping
-    public ResponseEntity<List<PostResponse>> list(
-            @PageableDefault(size = 10, sort = "createdAt") Pageable pageable
-    ) {
-        return ResponseEntity.ok(forumService.list(pageable));
+    public ResponseEntity<List<PostResponse>> list() {
+        Claims claims = null;
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Claims) {
+            claims = (Claims) auth.getPrincipal();
+        }
+        return ResponseEntity.ok(forumService.list(claims));
     }
 
     @Operation(summary = "Buscar post por ID")

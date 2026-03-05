@@ -25,23 +25,25 @@ public class CommentService {
     private final CommentRepo commentRepo;
     private final PostRepo postRepo;
     private final UserRepo userRepo;
+    private final VoteService voteService;
 
-    public List<CommentResponse> listByPost(UUID postId) {
+    public List<CommentResponse> listByPost(UUID postId, Claims claims) {
         var comments = commentRepo.findByPostIdFetched(postId);
 
-        // monta árvore: raiz com replies aninhadas
-        var roots = comments.stream()
+        return comments.stream()
                 .filter(c -> c.getParent() == null)
                 .map(root -> {
+                    var rootVotes = voteService.buildCommentVoteResponse(root.getId(), claims);
                     var replies = comments.stream()
                             .filter(c -> c.getParent() != null && c.getParent().getId().equals(root.getId()))
-                            .map(reply -> CommentResponse.from(reply, List.of()))
+                            .map(reply -> {
+                                var replyVotes = voteService.buildCommentVoteResponse(reply.getId(), claims);
+                                return CommentResponse.from(reply, List.of(), replyVotes);
+                            })
                             .toList();
-                    return CommentResponse.from(root, replies);
+                    return CommentResponse.from(root, replies, rootVotes);
                 })
                 .toList();
-
-        return roots;
     }
 
     @Transactional

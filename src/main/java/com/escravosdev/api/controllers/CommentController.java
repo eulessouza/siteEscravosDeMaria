@@ -26,7 +26,12 @@ public class CommentController {
     @Operation(summary = "Listar comentários de um post")
     @GetMapping("/post/{postId}")
     public ResponseEntity<List<CommentResponse>> listByPost(@PathVariable UUID postId) {
-        return ResponseEntity.ok(commentService.listByPost(postId));
+        Claims claims = null;
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Claims) {
+            claims = (Claims) auth.getPrincipal();
+        }
+        return ResponseEntity.ok(commentService.listByPost(postId, claims));
     }
 
     @Operation(summary = "Criar comentário")

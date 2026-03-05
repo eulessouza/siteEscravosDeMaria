@@ -33,6 +33,8 @@ public class ForumService {
     private final CategoryRepo categoryRepo;
     private final TagRepo tagRepo;
 
+    private final VoteService voteService;
+
     @Transactional(readOnly = true)
     public PostResponse create(CreateForumPostRequest req, Claims claims) {
         var author = userRepo.findByDiscordId(claims.getSubject())
@@ -78,9 +80,12 @@ public class ForumService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> list(Pageable pageable) {
-        return postRepo.findByTypeAndStatus(PostType.FORUM, PostStatus.PUBLISHED, pageable)
-                .stream().map(PostResponse::from).toList();
+    public List<PostResponse> list(Claims claims) {
+        return postRepo.findByTypeAndStatusFetched(PostType.FORUM, PostStatus.PUBLISHED)
+                .stream().map(post -> {
+                    var votes = voteService.buildPostVoteResponse(post.getId(), claims);
+                    return PostResponse.from(post, votes);
+                }).toList();
     }
 
     @Transactional(readOnly = true)
