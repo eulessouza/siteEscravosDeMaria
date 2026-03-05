@@ -1,6 +1,7 @@
 package com.escravosdev.api.controllers;
 
 import com.escravosdev.api.dtos.request.CreateForumPostRequest;
+import com.escravosdev.api.dtos.request.UpdateForumPostRequest;
 import com.escravosdev.api.dtos.response.PostResponse;
 import com.escravosdev.api.services.ForumService;
 import io.jsonwebtoken.Claims;
@@ -41,6 +42,22 @@ public class ForumController {
     public ResponseEntity<PostResponse> create(@RequestBody CreateForumPostRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(forumService.create(req, getClaims()));
+    }
+
+    @Operation(summary = "Editar post do fórum — autor")
+    @PutMapping("/{id}")
+    public ResponseEntity<PostResponse> update(
+            @PathVariable UUID id,
+            @RequestBody UpdateForumPostRequest req
+    ) {
+        return ResponseEntity.ok(forumService.update(id, req, getClaims()));
+    }
+
+    @Operation(summary = "Deletar post do fórum — autor ou ADM")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        forumService.delete(id, getClaims());
+        return ResponseEntity.noContent().build();
     }
 
     private Claims getClaims() {

@@ -1,9 +1,11 @@
 package com.escravosdev.api.services;
 
 import com.escravosdev.api.dtos.request.CreateForumPostRequest;
+import com.escravosdev.api.dtos.request.UpdateForumPostRequest;
 import com.escravosdev.api.dtos.response.PostResponse;
 import com.escravosdev.api.entities.Post;
 import com.escravosdev.api.entities.PostImage;
+import com.escravosdev.api.entities.discord.DiscordRoles;
 import com.escravosdev.api.entities.enums.PostStatus;
 import com.escravosdev.api.entities.enums.PostType;
 import com.escravosdev.api.repo.CategoryRepo;
@@ -92,5 +94,81 @@ public class ForumService {
         }
         var votes = voteService.buildPostVoteResponse(id, claims);
         return PostResponse.from(post, votes);
+    }
+
+    @Transactional
+    public PostResponse update(UUID id, UpdateForumPostRequest req, Claims claims) {
+        var post = postRepo.findByIdFetched(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.FORUM) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        var author = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (!post.getAuthor().getId().equals(author.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Só o autor pode editar este post");
+        }
+
+        post.setTitle(req.title());
+        post.setContent(req.content());
+        post.setCoverImageUrl(req.coverImageUrl());
+
+        // volta pra pending se já estava publicado
+        if (post.getStatus() == PostStatus.PUBLISHED) {
+            post.setStatus(PostStatus.PENDING_APPROVAL);
+            post.setApprovedBy(null);
+            post.setApprovedAt(null);
+        }
+
+        if (req.categorySlug() != null) {
+            var category = categoryRepo.findBySlug(req.categorySlug())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não encontrada"));
+            post.setCategory(category);
+        } else {
+            post.setCategory(null);
+        }
+
+        if (req.tagSlugs() != null) {
+            post.setTags(tagRepo.findBySlugIn(req.tagSlugs()));
+        }
+
+        if (req.imageUrls() != null) {
+            post.getImages().clear();
+            for (int i = 0; i < req.imageUrls().size(); i++) {
+                var img = new PostImage();
+                img.setPost(post);
+                img.setUrl(req.imageUrls().get(i));
+                img.setPosition(i);
+                post.getImages().add(img);
+            }
+        }
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional
+    public void delete(UUID id, Claims claims) {
+        var post = postRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.FORUM) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        // autor ou ADM pode deletar
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        boolean isAuthor = post.getAuthor().getId().equals(user.getId());
+        boolean isAdm    = DiscordRoles.isAdm(claims);
+
+        if (!isAuthor && !isAdm) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para deletar este post");
+        }
+
+        postRepo.delete(post);
     }
 }

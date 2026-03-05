@@ -1,6 +1,7 @@
 package com.escravosdev.api.controllers;
 
 import com.escravosdev.api.dtos.request.CreateBlogPostRequest;
+import com.escravosdev.api.dtos.request.UpdateBlogPostRequest;
 import com.escravosdev.api.dtos.response.PostResponse;
 import com.escravosdev.api.entities.discord.DiscordRoles;
 import com.escravosdev.api.services.BlogService;
@@ -46,6 +47,26 @@ public class BlogController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para postar no blog");
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(blogService.create(req, claims));
+    }
+
+    @Operation(summary = "Editar post do blog — autor")
+    @PutMapping("/{id}")
+    public ResponseEntity<PostResponse> update(
+            @PathVariable UUID id,
+            @RequestBody UpdateBlogPostRequest req
+    ) {
+        return ResponseEntity.ok(blogService.update(id, req, getClaims()));
+    }
+
+    @Operation(summary = "Deletar post do blog — ADM")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        var claims = getClaims();
+        if (!DiscordRoles.isAdm(claims)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para deletar");
+        }
+        blogService.delete(id, claims);
+        return ResponseEntity.noContent().build();
     }
 
     private Claims getClaims() {
