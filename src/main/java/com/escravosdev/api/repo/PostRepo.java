@@ -40,6 +40,16 @@ public interface PostRepo extends JpaRepository<Post, UUID> {
     LEFT JOIN FETCH p.category
     LEFT JOIN FETCH p.tags
     LEFT JOIN FETCH p.images
+    WHERE p.type = :type AND p.status IN :statuses
+""")
+    List<Post> findByTypeAndStatusInFetched(@Param("type") PostType type, @Param("statuses") List<PostStatus> statuses);
+
+    @Query("""
+    SELECT DISTINCT p FROM Post p
+    LEFT JOIN FETCH p.author
+    LEFT JOIN FETCH p.category
+    LEFT JOIN FETCH p.tags
+    LEFT JOIN FETCH p.images
     WHERE p.type = :type AND p.status = :status
 """)
     List<Post> findByTypeAndStatusFetched(@Param("type") PostType type, @Param("status") PostStatus status);
