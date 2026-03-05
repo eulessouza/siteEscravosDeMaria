@@ -62,7 +62,7 @@ public class QuestionService {
 
     @Transactional(readOnly = true)
     public List<PostResponse> list(Pageable pageable) {
-        return postRepo.findByTypeAndStatus(PostType.QUESTION, PostStatus.PUBLISHED, pageable)
+        return postRepo.findByTypeAndStatusInFetched(PostType.QUESTION, List.of(PostStatus.PUBLISHED, PostStatus.CLOSED))
                 .stream().map(PostResponse::from).toList();
     }
 
@@ -70,7 +70,9 @@ public class QuestionService {
     public PostResponse getById(UUID id) {
         var post = postRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        if (post.getType() != PostType.QUESTION || post.getStatus() != PostStatus.PUBLISHED) {
+
+        if (post.getType() != PostType.QUESTION ||
+                (post.getStatus() != PostStatus.PUBLISHED && post.getStatus() != PostStatus.CLOSED)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         return PostResponse.from(post);
