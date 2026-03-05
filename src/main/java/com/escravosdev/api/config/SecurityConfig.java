@@ -31,12 +31,20 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(                    "/health",
+                        .requestMatchers(
+                                "/health",
                                 "/auth/discord",
                                 "/auth/discord/callback",
+                                "/blog",
+                                "/blog/**",
+                                "/forum",
+                                "/forum/**",
+                                "/questions",
+                                "/questions/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html").permitAll()
+                                "/swagger-ui.html"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
