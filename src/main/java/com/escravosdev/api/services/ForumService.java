@@ -19,10 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +32,7 @@ public class ForumService {
 
     private final VoteService voteService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PostResponse create(CreateForumPostRequest req, Claims claims) {
         var author = userRepo.findByDiscordId(claims.getSubject())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
@@ -45,7 +42,6 @@ public class ForumService {
         }
 
         var post = new Post();
-
         post.setAuthor(author);
         post.setType(PostType.FORUM);
         post.setStatus(PostStatus.PENDING_APPROVAL);
@@ -55,17 +51,16 @@ public class ForumService {
 
         if (req.categorySlug() != null) {
             var category = categoryRepo.findBySlug(req.categorySlug())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não encontrada"));
             post.setCategory(category);
         }
 
         if (req.tagSlugs() != null && !req.tagSlugs().isEmpty()) {
-            var tags = tagRepo.findBySlugIn(req.tagSlugs());
-            post.setTags(tags);
+            post.setTags(tagRepo.findBySlugIn(req.tagSlugs()));
         }
 
-        if (req.imageUrls() != null) {
-            var images = new HashSet<PostImage>();
+        if (req.imageUrls() != null && !req.imageUrls().isEmpty()) {
+            var images = new LinkedHashSet<PostImage>();
             for (int i = 0; i < req.imageUrls().size(); i++) {
                 var img = new PostImage();
                 img.setPost(post);
@@ -89,12 +84,13 @@ public class ForumService {
     }
 
     @Transactional(readOnly = true)
-    public PostResponse getById(UUID id) {
-        var post = postRepo.findById(id)
+    public PostResponse getById(UUID id, Claims claims) {
+        var post = postRepo.findByIdFetched(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (post.getType() != PostType.FORUM || post.getStatus() != PostStatus.PUBLISHED) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        return PostResponse.from(post);
+        var votes = voteService.buildPostVoteResponse(id, claims);
+        return PostResponse.from(post, votes);
     }
 }

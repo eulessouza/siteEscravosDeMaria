@@ -27,18 +27,13 @@ public class ForumController {
     @Operation(summary = "Listar posts do fórum")
     @GetMapping
     public ResponseEntity<List<PostResponse>> list() {
-        Claims claims = null;
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof Claims) {
-            claims = (Claims) auth.getPrincipal();
-        }
-        return ResponseEntity.ok(forumService.list(claims));
+        return ResponseEntity.ok(forumService.list(getOptionalClaims()));
     }
 
     @Operation(summary = "Buscar post por ID")
     @GetMapping("/{id}")
     public ResponseEntity<PostResponse> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(forumService.getById(id));
+        return ResponseEntity.ok(forumService.getById(id, getOptionalClaims()));
     }
 
     @Operation(summary = "Criar post no fórum")
@@ -50,5 +45,11 @@ public class ForumController {
 
     private Claims getClaims() {
         return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    private Claims getOptionalClaims() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Claims c) return c;
+        return null;
     }
 }

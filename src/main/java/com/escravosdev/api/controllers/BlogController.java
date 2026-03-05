@@ -28,16 +28,14 @@ public class BlogController {
 
     @Operation(summary = "Listar todos os posts do blog")
     @GetMapping
-    public ResponseEntity<List<PostResponse>> list (
-            @PageableDefault(size = 10, sort="createdAt")Pageable pageable
-            ) {
-        return ResponseEntity.ok(blogService.list(pageable));
+    public ResponseEntity<List<PostResponse>> list() {
+        return ResponseEntity.ok(blogService.list());
     }
 
     @Operation(summary = "Buscar post por ID")
     @GetMapping("/{id}")
     public ResponseEntity<PostResponse> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(blogService.getById(id));
+        return ResponseEntity.ok(blogService.getById(id, getOptionalClaims()));
     }
 
     @Operation(summary = "Criar post no blog — só ADM")
@@ -52,5 +50,11 @@ public class BlogController {
 
     private Claims getClaims() {
         return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    private Claims getOptionalClaims() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Claims c) return c;
+        return null;
     }
 }

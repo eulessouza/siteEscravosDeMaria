@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PostRepo extends JpaRepository<Post, UUID> {
@@ -63,4 +64,13 @@ public interface PostRepo extends JpaRepository<Post, UUID> {
     WHERE p.status IN :statuses
 """)
     List<Post> findByStatusInFetched(@Param("statuses") List<PostStatus> statuses);
+    @Query("""
+    SELECT DISTINCT p FROM Post p
+    LEFT JOIN FETCH p.author
+    LEFT JOIN FETCH p.category
+    LEFT JOIN FETCH p.tags
+    LEFT JOIN FETCH p.images
+    WHERE p.id = :id
+""")
+    Optional<Post> findByIdFetched(@Param("id") UUID id);
 }

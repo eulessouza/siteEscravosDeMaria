@@ -25,10 +25,8 @@ public class QuestionController {
 
     @Operation(summary = "Listar dúvidas")
     @GetMapping
-    public ResponseEntity<List<PostResponse>> list(
-            @PageableDefault(size = 10, sort = "createdAt") Pageable pageable
-    ) {
-        return ResponseEntity.ok(questionService.list(pageable));
+    public ResponseEntity<List<PostResponse>> list() {
+        return ResponseEntity.ok(questionService.list());
     }
 
     @Operation(summary = "Buscar dúvida por ID")

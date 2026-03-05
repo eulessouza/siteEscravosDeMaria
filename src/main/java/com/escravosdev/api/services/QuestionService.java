@@ -30,7 +30,7 @@ public class QuestionService {
     private final CategoryRepo categoryRepo;
     private final TagRepo tagRepo;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PostResponse create(CreateQuestionRequest req, Claims claims) {
         var author = userRepo.findByDiscordId(claims.getSubject())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
@@ -48,27 +48,28 @@ public class QuestionService {
 
         if (req.categorySlug() != null) {
             var category = categoryRepo.findBySlug(req.categorySlug())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não encontrada"));
             post.setCategory(category);
         }
 
         if (req.tagSlugs() != null && !req.tagSlugs().isEmpty()) {
-            var tags = tagRepo.findBySlugIn(req.tagSlugs());
-            post.setTags(tags);
+            post.setTags(tagRepo.findBySlugIn(req.tagSlugs()));
         }
 
         return PostResponse.from(postRepo.save(post));
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> list(Pageable pageable) {
-        return postRepo.findByTypeAndStatusInFetched(PostType.QUESTION, List.of(PostStatus.PUBLISHED, PostStatus.CLOSED))
-                .stream().map(PostResponse::from).toList();
+    public List<PostResponse> list() {
+        return postRepo.findByTypeAndStatusInFetched(
+                PostType.QUESTION,
+                List.of(PostStatus.PUBLISHED, PostStatus.CLOSED)
+        ).stream().map(PostResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
     public PostResponse getById(UUID id) {
-        var post = postRepo.findById(id)
+        var post = postRepo.findByIdFetched(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         if (post.getType() != PostType.QUESTION ||
