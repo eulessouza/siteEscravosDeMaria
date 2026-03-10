@@ -1,6 +1,7 @@
 package com.escravosdev.bots;
 
 import com.escravosdev.api.entities.discord.DiscordProperties;
+import com.escravosdev.bots.verification.VerificationListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
@@ -17,16 +18,17 @@ public class BotConfig {
     private final DiscordProperties props;
 
     @Bean
-    public JDA jda(BotReadyListener botReadyListener) throws InterruptedException {
+    public JDA jda(BotReadyListener botReadyListener, VerificationListener verificationListener) throws InterruptedException {
         log.info("Iniciando bot...");
 
         return JDABuilder.createDefault(props.botToken())
                 .enableIntents(
                         GatewayIntent.GUILD_MEMBERS,
                         GatewayIntent.GUILD_MESSAGES,
-                        GatewayIntent.GUILD_PRESENCES
+                        GatewayIntent.GUILD_PRESENCES,
+                        GatewayIntent.MESSAGE_CONTENT
                 )
-                .addEventListeners(botReadyListener)
+                .addEventListeners(botReadyListener, verificationListener)
                 .build()
                 .awaitReady();
     }

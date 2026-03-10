@@ -78,11 +78,7 @@ public class ModerationController {
     @Operation(summary = "Fechar dúvida — Orientador ou ADM")
     @PostMapping("/close/{id}")
     public ResponseEntity<PostResponse> close(@PathVariable UUID id) {
-        var claims = getClaims();
-        if (!DiscordRoles.canAnswerDuvida(claims)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        }
-        return ResponseEntity.ok(moderationService.close(id, claims));
+        return ResponseEntity.ok(moderationService.close(id, getClaims()));
     }
 
     @Operation(summary = "Listar fechados — ADM")
@@ -90,6 +86,18 @@ public class ModerationController {
     public ResponseEntity<List<PostResponse>> listClosed() {
         requireAdm();
         return ResponseEntity.ok(moderationService.listClosed());
+    }
+
+    @Operation(summary = "Reabrir dúvida — autor, Orientador ou ADM")
+    @PostMapping("/reopen/{id}")
+    public ResponseEntity<PostResponse> reopen(@PathVariable UUID id) {
+        return ResponseEntity.ok(moderationService.reopen(id, getClaims()));
+    }
+
+    @Operation(summary = "Desarquivar post — blog: ADM | fórum/dúvidas: autor ou ADM")
+    @PostMapping("/unarchive/{id}")
+    public ResponseEntity<PostResponse> unarchive(@PathVariable UUID id) {
+        return ResponseEntity.ok(moderationService.unarchive(id, getClaims()));
     }
 
     private void requireAdm() {

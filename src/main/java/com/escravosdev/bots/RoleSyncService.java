@@ -28,11 +28,6 @@ public class RoleSyncService {
     private static final String DISCORD_API = "https://discord.com/api/v10";
     private static final String CDN = "https://cdn.discordapp.com";
 
-    public void syncOnStartup() throws InterruptedException {
-        Thread.sleep(3000);
-        sync();
-    }
-
     public void sync() {
         log.info("Sincronizando roles via API REST...");
 
@@ -79,20 +74,18 @@ public class RoleSyncService {
             entity.setPosition(position);
             entity.setColor(colorInt != null && colorInt != 0
                     ? String.format("#%06x", colorInt) : null);
-            entity.setGradient(gradient); // só sobrescreve se vier da API
+            if (gradient != null) {
+                entity.setGradient(gradient);
+            } else if (entity.getId() == null) {
+                // role nova sem gradiente — deixa null
+                entity.setGradient(null);
+            }
             entity.setIconUrl(iconHash != null
                     ? CDN + "/role-icons/" + id + "/" + iconHash + ".png"
                     : null);
             entity.setUpdatedAt(Instant.now());
             // functional não sobrescreve — definido manualmente
             guildRoleRepo.save(entity);
-
-            log.info("[{}] {} | cor: {} | gradiente: {} | ícone: {} | posição: {}",
-                    id, name,
-                    entity.getColor() != null ? entity.getColor() : "sem cor",
-                    gradient != null ? gradient : "sem gradiente",
-                    iconHash != null ? "sim" : "não",
-                    position);
         }
 
         log.info("Sync concluído — {} roles salvas.", roles.size());
