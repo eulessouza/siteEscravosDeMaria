@@ -1,0 +1,4612 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/main/java/**/*.java, src/main/resources/**/*.properties, src/main/resources/**/*.yml, src/main/resources/**/*.yaml, pom.xml, README.md
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+src/
+  main/
+    java/
+      com/
+        escravosdev/
+          api/
+            config/
+              GuildRoleCache.java
+              JwtAuthenticationFilter.java
+              SecurityConfig.java
+              WebConfig.java
+            controllers/
+              AuthController.java
+              BlogController.java
+              CategoryController.java
+              CommentController.java
+              ForumController.java
+              HealthController.java
+              ModerationController.java
+              QuestionController.java
+              TagController.java
+              UploadController.java
+              VoteController.java
+            dtos/
+              request/
+                CreateBlogPostRequest.java
+                CreateCommentRequest.java
+                CreateForumPostRequest.java
+                CreateQuestionRequest.java
+                UpdateBlogPostRequest.java
+                UpdateForumPostRequest.java
+              response/
+                CommentResponse.java
+                PostResponse.java
+                UserResponse.java
+                VoteResponse.java
+            entities/
+              discord/
+                DiscordProfileRoles.java
+                DiscordProperties.java
+                DiscordRoles.java
+                DiscordUser.java
+                GuildRole.java
+                UserRole.java
+              enums/
+                PostStatus.java
+                PostType.java
+                VoteType.java
+              Category.java
+              Comment.java
+              CsrfToken.java
+              Post.java
+              PostImage.java
+              Tag.java
+              User.java
+              Vote.java
+            repo/
+              CategoryRepo.java
+              CommentRepo.java
+              CsrfTokenRepo.java
+              GuildRoleRepo.java
+              PostRepo.java
+              TagRepo.java
+              UserRepo.java
+              UserRoleRepo.java
+              VoteRepo.java
+            services/
+              AuthService.java
+              BlogService.java
+              CommentService.java
+              DiscordService.java
+              ForumService.java
+              JwtService.java
+              ModerationService.java
+              QuestionService.java
+              UploadService.java
+              VoteService.java
+            ApiApplication.java
+          bots/
+            verification/
+              VerificationAiService.java
+              VerificationConstants.java
+              VerificationListener.java
+              VerificationService.java
+              VerificationSession.java
+            BotConfig.java
+            BotReadyListener.java
+    resources/
+      application.properties
+pom.xml
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/main/java/com/escravosdev/api/config/WebConfig.java">
+package com.escravosdev.api.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    @Value("${upload.dir:uploads}")
+    private String uploadDir;
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + uploadDir + "/");
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/CategoryController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.entities.Category;
+import com.escravosdev.api.entities.enums.PostType;
+import com.escravosdev.api.repo.CategoryRepo;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/categories")
+@RequiredArgsConstructor
+public class CategoryController {
+
+    private final CategoryRepo categoryRepo;
+
+    
+    @GetMapping
+    public ResponseEntity<List<Category>> list() {
+        return ResponseEntity.ok(categoryRepo.findAll());
+    }
+
+    
+    @GetMapping("/type/{type}")
+    public ResponseEntity<List<Category>> listByType(@PathVariable PostType type) {
+        return ResponseEntity.ok(categoryRepo.findByType(type));
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/HealthController.java">
+package com.escravosdev.api.controllers;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.sql.DataSource;
+import java.time.Instant;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/health")
+public class HealthController {
+
+    private final DataSource dS;
+
+    public HealthController(DataSource dS) {
+        this.dS = dS;
+    }
+
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> health()
+    {
+        var db = checkDatabase();
+        var status = db ? "UP" : "DEGRADED";
+
+        return ResponseEntity.ok(Map.of(
+                "status", status,
+                "timestamp", Instant.now().toString(),
+                "services", Map.of(
+                        "api", "UP",
+                        "database", db ? "UP" : "DOWN"
+                )
+        ));
+    }
+
+    private boolean checkDatabase() {
+        try (var conn = dS.getConnection()) {
+            return conn.isValid(2);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/TagController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.entities.Tag;
+import com.escravosdev.api.repo.TagRepo;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/tags")
+@RequiredArgsConstructor
+public class TagController {
+
+    private final TagRepo tagRepo;
+
+    
+    @GetMapping
+    public ResponseEntity<List<Tag>> list() {
+        return ResponseEntity.ok(tagRepo.findAll());
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/UploadController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.services.UploadService;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/upload")
+@RequiredArgsConstructor
+public class UploadController {
+
+    private final UploadService uploadService;
+
+    
+    @PostMapping("/blog")
+    public ResponseEntity<Map<String, String>> uploadBlog(
+            @RequestParam("file") MultipartFile file
+    ) {
+        var url = uploadService.uploadImage(file);
+        return ResponseEntity.ok(Map.of("url", url));
+    }
+
+    
+    @PostMapping("/forum")
+    public ResponseEntity<Map<String, String>> uploadForum(
+            @RequestParam("file") MultipartFile file
+    ) {
+        var url = uploadService.uploadForumFile(file);
+        return ResponseEntity.ok(Map.of("url", url));
+    }
+
+    
+    @PostMapping("/forum/batch")
+    public ResponseEntity<Map<String, List<String>>> uploadForumBatch(
+            @RequestParam("files") List<MultipartFile> files
+    ) {
+        if (files.size() > 10) {
+            return ResponseEntity.badRequest().build();
+        }
+        var urls = files.stream().map(uploadService::uploadForumFile).toList();
+        return ResponseEntity.ok(Map.of("urls", urls));
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/VoteController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.dtos.response.VoteResponse;
+import com.escravosdev.api.entities.enums.VoteType;
+import com.escravosdev.api.services.VoteService;
+import io.jsonwebtoken.Claims;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/votes")
+@RequiredArgsConstructor
+public class VoteController {
+
+    private final VoteService voteService;
+
+    
+    @PostMapping("/post/{postId}")
+    public ResponseEntity<VoteResponse> voteOnPost(
+            @PathVariable UUID postId,
+            @RequestParam VoteType type
+    ) {
+        return ResponseEntity.ok(voteService.voteOnPost(postId, type, getClaims()));
+    }
+
+    
+    @PostMapping("/comment/{commentId}")
+    public ResponseEntity<VoteResponse> voteOnComment(
+            @PathVariable UUID commentId,
+            @RequestParam VoteType type
+    ) {
+        return ResponseEntity.ok(voteService.voteOnComment(commentId, type, getClaims()));
+    }
+
+    private Claims getClaims() {
+        return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/request/CreateBlogPostRequest.java">
+package com.escravosdev.api.dtos.request;
+
+import java.util.List;
+
+public record CreateBlogPostRequest(
+        String title,
+        String content,
+        String coverImageUrl,
+        List<String> imageUrls,     // imagens do corpo do post em ordem
+        List<String> tagSlugs,      // slugs das tags
+        String categorySlug,
+        boolean publishToSite,
+        boolean publishToDiscord,
+        boolean publishToInstagram
+) {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/request/CreateCommentRequest.java">
+package com.escravosdev.api.dtos.request;
+
+import java.util.UUID;
+
+public record CreateCommentRequest(
+        String content,
+        UUID parentId  // null = comentário raiz
+) {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/request/CreateForumPostRequest.java">
+package com.escravosdev.api.dtos.request;
+
+import java.util.List;
+
+public record CreateForumPostRequest(
+        String title,
+        String content,
+        String coverImageUrl,
+        List<String> imageUrls,
+        List<String> tagSlugs,
+        String categorySlug
+) {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/request/CreateQuestionRequest.java">
+package com.escravosdev.api.dtos.request;
+
+import java.util.List;
+
+public record CreateQuestionRequest(
+        String title,
+        String content,
+        List<String> tagSlugs,
+        String categorySlug
+) {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/request/UpdateBlogPostRequest.java">
+package com.escravosdev.api.dtos.request;
+
+import java.util.List;
+
+public record UpdateBlogPostRequest(
+        String title,
+        String content,
+        String coverImageUrl,
+        List<String> imageUrls,
+        List<String> tagSlugs,
+        String categorySlug,
+        boolean publishToSite,
+        boolean publishToDiscord,
+        boolean publishToInstagram
+) {
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/request/UpdateForumPostRequest.java">
+package com.escravosdev.api.dtos.request;
+
+import java.util.List;
+
+public record UpdateForumPostRequest (
+        String title,
+        String content,
+        String coverImageUrl,
+        List<String> imageUrls,
+        List<String> tagSlugs,
+        String categorySlug
+) {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/response/UserResponse.java">
+package com.escravosdev.api.dtos.response;
+
+import com.escravosdev.api.entities.User;
+
+public record UserResponse (
+        String discordId,
+        String username,
+        String globalName,
+        String email,
+        String avatar,
+        String displayColor,
+        String gender,
+        String religion
+) {
+    public static UserResponse from(User user) {
+        return new UserResponse(
+                user.getDiscordId(),
+                user.getUsername(),
+                user.getGlobalName(),
+                user.getEmail(),
+                buildAvatarUrl(user.getDiscordId(), user.getAvatarHash()),
+                user.getDisplayColor(),
+                user.getGender(),
+                user.getReligion()
+        );
+    }
+
+    private static String buildAvatarUrl(String discordId, String hash) {
+        if (hash == null || hash.isBlank()) return null;
+        var ext = hash.startsWith("a_") ? "gif" : "png";
+        return "https://cdn.discordapp.com/avatars/" + discordId + "/" + hash + "." + ext;
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/response/VoteResponse.java">
+package com.escravosdev.api.dtos.response;
+
+public record VoteResponse(
+        long upvotes,
+        long downvotes,
+        String userVote  // "UPVOTE", "DOWNVOTE" ou null
+) {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/discord/DiscordProfileRoles.java">
+package com.escravosdev.api.entities.discord;
+
+import java.util.List;
+import java.util.Map;
+
+public class DiscordProfileRoles {
+
+    // Gênero
+    private static final String HOMEM  = "1457044028003455121";
+    private static final String MULHER = "1457044165472026848";
+
+    // Religião — ordem de prioridade (índice 0 = maior prioridade)
+    private static final List<String> RELIGION_PRIORITY = List.of(
+            "1457031371804381247", // Católico
+            "1457033311418454136", // Recém-Convertido
+            "1457031784167374972", // Protestante
+            "1457031659319988296", // Ortodoxo
+            "1463638998235742351", // Sem Denominação
+            "1457031879365759323", // Pagão
+            "1457032315355267174", // Judeu
+            "1457032302222639149", // Muçulmano
+            "1457032320035848233"  // Ateu/Agnóstico
+    );
+
+    private static final Map<String, String> RELIGION_NAMES = Map.of(
+            "1457031371804381247", "Católico",
+            "1457033311418454136", "Recém-Convertido",
+            "1457031784167374972", "Protestante",
+            "1457031659319988296", "Ortodoxo",
+            "1463638998235742351", "Sem Denominação",
+            "1457031879365759323", "Pagão",
+            "1457032315355267174", "Judeu",
+            "1457032302222639149", "Muçulmano",
+            "1457032320035848233", "Ateu/Agnóstico"
+    );
+
+    private DiscordProfileRoles() {}
+
+    public static String extractGender(List<String> roles) {
+        if (roles.contains(HOMEM))  return "Homem";
+        if (roles.contains(MULHER)) return "Mulher";
+        return null;
+    }
+
+    public static String extractReligion(List<String> roles) {
+        return RELIGION_PRIORITY.stream()
+                .filter(roles::contains)
+                .map(RELIGION_NAMES::get)
+                .findFirst()
+                .orElse(null);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/discord/DiscordProperties.java">
+package com.escravosdev.api.entities.discord;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix="discord")
+public record DiscordProperties(
+        String clientId,
+        String clientSecret,
+        String botToken,
+        String guildId,
+        String redirectUri,
+        String frontendUrl
+) {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/discord/DiscordRoles.java">
+package com.escravosdev.api.entities.discord;
+
+import io.jsonwebtoken.Claims;
+
+import java.util.List;
+import java.util.Set;
+
+public class DiscordRoles {
+
+    public static final String REI             = "1461556222766354483";
+    public static final String AUTORIDADE_REAL = "1458280546684768397";
+    public static final String DUQUE           = "1456875359860424775";
+    public static final String MARQUES         = "1456875744209797131";
+    public static final String CONDE           = "1456875804204990637";
+    public static final String ORIENTADOR      = "1463258112118100020";
+    public static final String ADM_ORACOES     = "1457183789607293010";
+    public static final String SENHOR_FEUDAL   = "1457159160574775576";
+    public static final String ROLE_SECRETA    = "1470857348556914899";
+
+    private static final List<String> ADM_ROLES = List.of(
+            REI, AUTORIDADE_REAL, DUQUE, ROLE_SECRETA, MARQUES, CONDE
+    );
+
+    // todas as roles que o sistema conhece
+    public static final Set<String> ALL_KNOWN_ROLES = Set.of(
+            REI, AUTORIDADE_REAL, DUQUE, ROLE_SECRETA, MARQUES, CONDE,
+            ORIENTADOR, ADM_ORACOES, SENHOR_FEUDAL
+    );
+
+    private DiscordRoles() {}
+
+    public static boolean isAdm(Claims claims) {
+        var roles = (List<?>) claims.get("roles");
+        if (roles == null) return false;
+        return ADM_ROLES.stream().anyMatch(roles::contains);
+    }
+
+    public static boolean isOrientador(Claims claims) {
+        var roles = (List<?>) claims.get("roles");
+        return roles != null && roles.contains(ORIENTADOR);
+    }
+
+    public static boolean hasRole(Claims claims, String roleId) {
+        var roles = (List<?>) claims.get("roles");
+        return roles != null && roles.contains(roleId);
+    }
+
+    // --- blog ---
+    public static boolean canCreateBlogPost(Claims claims) {
+        return isAdm(claims);
+    }
+    public static boolean canCommentBlog(Claims claims) {
+        return claims != null;
+    }
+
+    // --- fórum ---
+    public static boolean canCreateForumPost(Claims claims) {
+        return claims != null;
+    }
+    public static boolean canCommentForum(Claims claims) {
+        return claims != null;
+    }
+
+    // --- dúvidas ---
+    public static boolean canCreateDuvida(Claims claims) {
+        return claims != null;
+    }
+    public static boolean canAnswerDuvida(Claims claims) {
+        return isOrientador(claims) || isAdm(claims);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/discord/DiscordUser.java">
+package com.escravosdev.api.entities.discord;
+
+import java.util.List;
+
+public record DiscordUser (
+    String id,
+    String username,    // username do Discord
+    String globalName,  // nome global (@username)
+    String email,       // e-mail que o usuário tem no Discord
+    String avatar,      // link do avatar dele (CDN do Discord)
+    List<String> roles  // IDs das roles do servidor
+) {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/discord/GuildRole.java">
+package com.escravosdev.api.entities.discord;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.Instant;
+
+@Entity
+@Table(name="guild_roles")
+@Setter
+@Getter
+@NoArgsConstructor
+public class GuildRole {
+    @Id
+    private String id;
+
+    private String name;
+    private Integer position;   // prioridade — quanto maior, mais alto
+    private String color;       // hex — vem da API automaticamente
+    private String gradient;    // preenchido manualmente pelo adm pras roles especiais
+    private String iconUrl;
+
+    // essa role importa pro sistema?
+    private boolean functional = false;
+
+    private Instant updatedAt;
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/discord/UserRole.java">
+package com.escravosdev.api.entities.discord;
+
+import com.escravosdev.api.entities.User;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.Instant;
+
+
+@Entity
+@Table(name = "user_roles")
+@Getter @Setter
+@NoArgsConstructor
+public class UserRole {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private java.util.UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    private GuildRole role;
+
+    private Instant assignedAt = Instant.now();
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/enums/PostStatus.java">
+package com.escravosdev.api.entities.enums;
+
+public enum PostStatus {
+    DRAFT,             // rascunho — só blog usa
+    PENDING_APPROVAL,  // aguardando aprovação — fórum e dúvidas
+    PUBLISHED,         // publicado
+    CLOSED,            // dúvida respondida e fechada pelo orientador ou adm
+    ARCHIVED,          // arquivado pelo adm
+    REJECTED           // rejeitado pelo adm
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/enums/PostType.java">
+package com.escravosdev.api.entities.enums;
+
+public enum PostType {
+    BLOG,
+    FORUM,
+    QUESTION
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/enums/VoteType.java">
+package com.escravosdev.api.entities.enums;
+
+public enum VoteType {
+    UPVOTE,
+    DOWNVOTE
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/Comment.java">
+package com.escravosdev.api.entities;
+
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "comments", indexes = {
+        @Index(name = "idx_comment_post", columnList = "post_id"),
+        @Index(name = "idx_comment_parent", columnList = "parent_id")
+})
+@Getter
+@Setter
+@NoArgsConstructor
+public class Comment {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Comment parent; // null = comentário raiz
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String content;
+
+    private boolean deleted = false;
+
+    @CreationTimestamp
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    private Instant updatedAt;
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/CsrfToken.java">
+package com.escravosdev.api.entities;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.Instant;
+
+@Entity
+@Table(name = "csrf_tokens")
+@Getter
+@Setter
+@NoArgsConstructor
+public class CsrfToken {
+    @Id
+    private String token;
+    private Instant createdAt = Instant.now();
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/Tag.java">
+package com.escravosdev.api.entities;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+@Entity
+@Table(name = "tags")
+@Getter @Setter @NoArgsConstructor
+public class Tag {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(nullable = false, unique = true)
+    private String name; // SANTOS, ORAÇÕES, DISCUSSÃO...
+
+    @Column(nullable = false, unique = true)
+    private String slug; // santos, oracoes, discussao...
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/Vote.java">
+package com.escravosdev.api.entities;
+
+import com.escravosdev.api.entities.enums.VoteType;
+import jakarta.persistence.*;
+import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "votes", indexes = {
+        @Index(name = "idx_vote_user", columnList = "user_id"),
+        @Index(name = "idx_vote_post", columnList = "post_id"),
+        @Index(name = "idx_vote_comment", columnList = "comment_id")
+},
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "post_id"}),
+                @UniqueConstraint(columnNames = {"user_id", "comment_id"})
+        })
+@Getter
+@Setter
+@NoArgsConstructor
+public class Vote {
+        @Id
+        @GeneratedValue(strategy = GenerationType.UUID)
+        private UUID id;
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "user_id", nullable = false)
+        private User user;
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "post_id")
+        private Post post; // null se for voto em comentário
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "comment_id")
+        private Comment comment; // null se for voto em post
+
+        @Enumerated(EnumType.STRING)
+        @Column(nullable = false)
+        private VoteType type; // UPVOTE ou DOWNVOTE
+
+        @CreationTimestamp
+        private Instant createdAt;
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/CommentRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.Comment;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface CommentRepo extends JpaRepository<Comment, UUID> {
+
+    @Query("""
+        SELECT DISTINCT c FROM Comment c
+        LEFT JOIN FETCH c.author
+        LEFT JOIN FETCH c.parent
+        WHERE c.post.id = :postId
+        ORDER BY c.createdAt ASC
+    """)
+    List<Comment> findByPostIdFetched(@Param("postId") UUID postId);
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/CsrfTokenRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.CsrfToken;
+import jakarta.transaction.Transactional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+
+import java.time.Instant;
+
+public interface CsrfTokenRepo extends JpaRepository<CsrfToken, String> {
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM CsrfToken c WHERE c.createdAt < :threshold")
+    void deleteByCreatedAtBefore(Instant threshold);
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/GuildRoleRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.discord.GuildRole;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface GuildRoleRepo extends JpaRepository<GuildRole, String> {}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/UserRoleRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.discord.UserRole;
+import com.escravosdev.api.entities.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface UserRoleRepo extends JpaRepository<UserRole, UUID> {
+    List<UserRole> findByUser(User user);
+    void deleteByUser(User user);
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/VoteRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.Vote;
+import com.escravosdev.api.entities.enums.VoteType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface VoteRepo extends JpaRepository<Vote, UUID> {
+
+    Optional<Vote> findByUserIdAndPostId(UUID userId, UUID postId);
+    Optional<Vote> findByUserIdAndCommentId(UUID userId, UUID commentId);
+
+    long countByPostIdAndType(UUID postId, VoteType type);
+    long countByCommentIdAndType(UUID commentId, VoteType type);
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/AuthService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.entities.User;
+import com.escravosdev.api.entities.discord.DiscordProfileRoles;
+import com.escravosdev.api.entities.discord.DiscordUser;
+import com.escravosdev.api.entities.discord.GuildRole;
+import com.escravosdev.api.entities.discord.UserRole;
+import com.escravosdev.api.repo.GuildRoleRepo;
+import com.escravosdev.api.repo.UserRepo;
+import com.escravosdev.api.repo.UserRoleRepo;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.Comparator;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepo userRepo;
+    private final GuildRoleRepo guildRoleRepo;
+    private final UserRoleRepo userRoleRepo;
+    private final DiscordService discordService;
+    private final JwtService jwtService;
+
+    @Transactional
+    public String processCallback(String code, String redirectPath) {
+        var accessToken = discordService.exchangeCodeForToken(code);
+        var userData    = discordService.fetchUser(accessToken);
+        var userId      = (String) userData.get("id");
+
+        var user = userRepo.findByDiscordId(userId).orElse(new User());
+        user.setDiscordId(userId);
+        user.setUsername((String) userData.get("username"));
+        user.setGlobalName((String) userData.get("global_name"));
+        user.setEmail((String) userData.get("email"));
+        user.setAvatarHash((String) userData.get("avatar"));
+        user.setLastLogin(Instant.now());
+
+        var allRoleIds = discordService.fetchUserRoles(userId);
+        var guildRoles = guildRoleRepo.findAllById(allRoleIds);
+
+        var topColorRole = guildRoles.stream()
+                .filter(r -> r.getColor() != null || r.getGradient() != null)
+                .max(Comparator.comparingInt(GuildRole::getPosition))
+                .orElse(null);
+
+        if (topColorRole != null) {
+            user.setDisplayColor(topColorRole.getGradient() != null
+                    ? topColorRole.getGradient()
+                    : topColorRole.getColor());
+        }
+
+        user.setGender(DiscordProfileRoles.extractGender(allRoleIds));
+        user.setReligion(DiscordProfileRoles.extractReligion(allRoleIds));
+        userRepo.save(user);
+
+        userRoleRepo.deleteByUser(user);
+        var userRoles = guildRoles.stream()
+                .filter(GuildRole::isFunctional)
+                .map(role -> {
+                    var ur = new UserRole();
+                    ur.setUser(user);
+                    ur.setRole(role);
+                    return ur;
+                }).toList();
+        userRoleRepo.saveAll(userRoles);
+
+        var functionalRoleIds = userRoles.stream()
+                .map(ur -> ur.getRole().getId())
+                .toList();
+
+        var discordUser = new DiscordUser(
+                userId, user.getUsername(), user.getGlobalName(),
+                user.getEmail(), user.getAvatarHash(), functionalRoleIds
+        );
+
+        return jwtService.generateToken(discordUser);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/UploadService.java">
+package com.escravosdev.api.services;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class UploadService {
+
+    @Value("${upload.dir:uploads}")
+    private String uploadDir;
+
+    @Value("${upload.base-url:http://localhost:8080/uploads}")
+    private String baseUrl;
+
+    private static final List<String> ALLOWED_IMAGE_TYPES = List.of(
+            "image/jpeg", "image/png", "image/webp"
+    );
+
+    private static final List<String> ALLOWED_FORUM_TYPES = List.of(
+            "image/jpeg", "image/png", "image/webp", "image/gif",
+            "video/mp4", "video/x-matroska", "video/quicktime",
+            "video/x-msvideo", "video/webm"
+    );
+
+    private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;  // 10MB
+    private static final long MAX_VIDEO_SIZE = 100L * 1024 * 1024; // 100MB
+
+    public String uploadImage(MultipartFile file) {
+        validateFile(file, ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, "Apenas JPG, PNG e WEBP são permitidos no blog");
+        return save(file);
+    }
+
+    public String uploadForumFile(MultipartFile file) {
+        validateFile(file, ALLOWED_FORUM_TYPES, MAX_VIDEO_SIZE, "Tipo de arquivo não permitido no fórum");
+        // imagens têm limite menor
+        if (isImage(file) && file.getSize() > MAX_IMAGE_SIZE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Imagens devem ter no máximo 10MB");
+        }
+        return save(file);
+    }
+
+    private void validateFile(MultipartFile file, List<String> allowed, long maxSize, String errorMsg) {
+        if (file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Arquivo vazio");
+        }
+        if (!allowed.contains(file.getContentType())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errorMsg);
+        }
+        if (file.getSize() > maxSize) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Arquivo excede o tamanho máximo permitido");
+        }
+    }
+
+    private String save(MultipartFile file) {
+        try {
+            var uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+
+            var ext      = getExtension(file.getOriginalFilename());
+            var filename = UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
+            var dest     = uploadPath.resolve(filename);
+
+            file.transferTo(dest);
+
+            return baseUrl + "/" + filename;
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao salvar arquivo");
+        }
+    }
+
+    private String getExtension(String filename) {
+        if (filename == null || !filename.contains(".")) return "";
+        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    private boolean isImage(MultipartFile file) {
+        var ct = file.getContentType();
+        return ct != null && ct.startsWith("image/");
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/VoteService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.dtos.response.VoteResponse;
+import com.escravosdev.api.entities.Vote;
+import com.escravosdev.api.entities.enums.PostType;
+import com.escravosdev.api.entities.enums.VoteType;
+import com.escravosdev.api.repo.*;
+import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class VoteService {
+
+    private final VoteRepo voteRepo;
+    private final PostRepo postRepo;
+    private final CommentRepo commentRepo;
+    private final UserRepo userRepo;
+
+    @Transactional
+    public VoteResponse voteOnPost(UUID postId, VoteType type, Claims claims) {
+        var post = postRepo.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // só fórum tem upvote/downvote em posts
+        if (post.getType() != PostType.FORUM) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Votos em posts só são permitidos no fórum");
+        }
+
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        var existing = voteRepo.findByUserIdAndPostId(user.getId(), postId);
+
+        if (existing.isPresent()) {
+            var vote = existing.get();
+            if (vote.getType() == type) {
+                // mesmo voto → desfaz (toggle)
+                voteRepo.delete(vote);
+            } else {
+                // voto diferente → troca
+                vote.setType(type);
+                voteRepo.save(vote);
+            }
+        } else {
+            var vote = new Vote();
+            vote.setUser(user);
+            vote.setPost(post);
+            vote.setType(type);
+            voteRepo.save(vote);
+        }
+
+        return buildPostVoteResponse(postId, claims);
+    }
+
+    @Transactional
+    public VoteResponse voteOnComment(UUID commentId, VoteType type, Claims claims) {
+        var comment = commentRepo.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // dúvidas: só upvote nas respostas
+        if (comment.getPost().getType() == PostType.QUESTION && type == VoteType.DOWNVOTE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Respostas de dúvidas só aceitam upvote");
+        }
+
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        var existing = voteRepo.findByUserIdAndCommentId(user.getId(), commentId);
+
+        if (existing.isPresent()) {
+            var vote = existing.get();
+            if (vote.getType() == type) {
+                voteRepo.delete(vote);
+            } else {
+                vote.setType(type);
+                voteRepo.save(vote);
+            }
+        } else {
+            var vote = new Vote();
+            vote.setUser(user);
+            vote.setComment(comment);
+            vote.setType(type);
+            voteRepo.save(vote);
+        }
+
+        return buildCommentVoteResponse(commentId, claims);
+    }
+
+    public VoteResponse buildPostVoteResponse(UUID postId, Claims claims) {
+        var upvotes   = voteRepo.countByPostIdAndType(postId, VoteType.UPVOTE);
+        var downvotes = voteRepo.countByPostIdAndType(postId, VoteType.DOWNVOTE);
+
+        String userVote = null;
+        if (claims != null) {
+            var user = userRepo.findByDiscordId(claims.getSubject()).orElse(null);
+            if (user != null) {
+                userVote = voteRepo.findByUserIdAndPostId(user.getId(), postId)
+                        .map(v -> v.getType().name())
+                        .orElse(null);
+            }
+        }
+
+        return new VoteResponse(upvotes, downvotes, userVote);
+    }
+
+    public VoteResponse buildCommentVoteResponse(UUID commentId, Claims claims) {
+        var upvotes   = voteRepo.countByCommentIdAndType(commentId, VoteType.UPVOTE);
+        var downvotes = voteRepo.countByCommentIdAndType(commentId, VoteType.DOWNVOTE);
+
+        String userVote = null;
+        if (claims != null) {
+            var user = userRepo.findByDiscordId(claims.getSubject()).orElse(null);
+            if (user != null) {
+                userVote = voteRepo.findByUserIdAndCommentId(user.getId(), commentId)
+                        .map(v -> v.getType().name())
+                        .orElse(null);
+            }
+        }
+
+        return new VoteResponse(upvotes, downvotes, userVote);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/bots/verification/VerificationAiService.java">
+package com.escravosdev.bots.verification;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@Service
+public class VerificationAiService {
+
+    @Value("${nvidia.api-key}")
+    private String apiKey;
+
+    private final RestClient restClient = RestClient.create();
+
+    private static final String NVIDIA_API = "https://integrate.api.nvidia.com/v1/chat/completions";
+    private static final String MODEL      = "google/gemma-3n-e4b-it";
+
+    public record AiAnalysis(boolean problematico, String resumo, String sugestao) {}
+
+    public AiAnalysis analisarResposta1(String resposta) {
+        var prompt = """
+                Você é um assistente moderador de um servidor Discord católico.
+                Analise a seguinte resposta de um candidato à entrada no servidor.
+                
+                A resposta é para as seguintes perguntas:
+                1. Qual é a sua religião? (se católico, é recém-convertido ou desde sempre? Reconhece o Papa?)
+                2. Caso discorde de algum ensinamento da Igreja, como costuma agir?
+                3. Já leu o Catecismo ou documentos oficiais?
+                4. Qual é o seu sexo?
+                5. Por que deseja participar?
+                6. Onde encontrou o servidor?
+                
+                RESPOSTA DO CANDIDATO:
+                %s
+                
+                Avalie se há sinais PROBLEMÁTICOS como:
+                - Sedevacantismo explícito (nega autoridade do Papa atual)
+                - Hostilidade à Igreja Católica
+                - Má-fé evidente ou provocação
+                - Respostas completamente vazias ou sem sentido
+                
+                Responda APENAS em JSON válido, sem texto antes ou depois:
+                {"problematico": true/false, "resumo": "...", "sugestao": "..."}
+                """.formatted(resposta);
+
+        return chamar(prompt);
+    }
+
+    public AiAnalysis analisarResposta2(String resposta) {
+        var prompt = """
+                Você é um assistente moderador de um servidor Discord católico.
+                O candidato acabou de responder se concorda com as regras do servidor.
+                
+                As regras proíbem: pornografia, ataques à Igreja/Papa/Magistério,
+                sedevacantismo, militância político-partidária, teorias conspiratórias,
+                desordem deliberada ou provocações.
+                
+                RESPOSTA DO CANDIDATO:
+                %s
+                
+                Avalie se há sinais PROBLEMÁTICOS como:
+                - Recusa explícita de alguma regra
+                - Ironia ou sarcasmo sobre as regras
+                - Condicionamento ("concordo, mas...")
+                - Resposta incompreensível ou sem sentido
+                
+                Responda APENAS em JSON válido, sem texto antes ou depois:
+                {"problematico": true/false, "resumo": "...", "sugestao": "..."}
+                """.formatted(resposta);
+
+        return chamar(prompt);
+    }
+
+    public String gerarBriefingFinal(VerificationSession session) {
+        var pings = new StringBuilder();
+        if (session.isPingOracoes()) pings.append("Orações, ");
+        if (session.isPingBump())    pings.append("Bump, ");
+        if (session.isPingReviver()) pings.append("Reviver Chat, ");
+
+        var prompt = """
+                Você é um assistente moderador de um servidor Discord católico.
+                Gere um briefing objetivo para os administradores avaliarem um candidato.
+                
+                RESPOSTA 1 (apresentação, religião, postura):
+                %s
+                
+                ANÁLISE R1: %s
+                
+                RESPOSTA 2 (aceite das regras):
+                %s
+                
+                ANÁLISE R2: %s
+                
+                PINGS SOLICITADOS: %s
+                
+                Gere um briefing em português com:
+                1. Perfil resumido (religião, postura, motivação)
+                2. Pontos positivos
+                3. Pontos de atenção (se houver)
+                4. Recomendação: ACEITAR / RECUSAR / OBSERVAR
+                
+                Máximo 300 palavras.
+                """.formatted(
+                session.getResposta1(),
+                session.getAnaliseR1(),
+                session.getResposta2(),
+                session.getAnaliseR2(),
+                pings.isEmpty() ? "Nenhum" : pings.toString()
+        );
+
+        try {
+            return chamarTexto(prompt);
+        } catch (Exception e) {
+            log.error("Erro ao gerar briefing", e);
+            return "⚠️ Erro ao gerar briefing automático. Avalie manualmente.";
+        }
+    }
+
+    private AiAnalysis chamar(String prompt) {
+        try {
+            var text = chamarTexto(prompt);
+            var clean = text.strip();
+
+            // extrai o JSON — modelo pode colocar texto antes/depois
+            var start = clean.indexOf('{');
+            var end   = clean.lastIndexOf('}');
+            if (start >= 0 && end > start) {
+                clean = clean.substring(start, end + 1);
+            }
+
+            var problematico = clean.contains("\"problematico\": true") ||
+                    clean.contains("\"problematico\":true");
+            var resumo   = extrairCampo(clean, "resumo");
+            var sugestao = extrairCampo(clean, "sugestao");
+
+            return new AiAnalysis(problematico, resumo, sugestao);
+
+        } catch (Exception e) {
+            log.error("Erro ao chamar NVIDIA AI", e);
+            return new AiAnalysis(false, "Erro na análise automática.", "Avalie manualmente.");
+        }
+    }
+
+    private String chamarTexto(String prompt) {
+        var payload = Map.of(
+                "model",             MODEL,
+                "messages",          List.of(Map.of("role", "user", "content", prompt)),
+                "max_tokens",        512,
+                "temperature",       0.20,
+                "top_p",             0.70,
+                "frequency_penalty", 0.00,
+                "presence_penalty",  0.00,
+                "stream",            false
+        );
+
+        var response = restClient.post()
+                .uri(NVIDIA_API)
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .retrieve()
+                .body(Map.class);
+
+        var choices = (List<Map<String, Object>>) response.get("choices");
+        var message = (Map<String, Object>) choices.get(0).get("message");
+        return (String) message.get("content");
+    }
+
+    private String extrairCampo(String json, String campo) {
+        try {
+            var key   = "\"" + campo + "\": \"";
+            var start = json.indexOf(key) + key.length();
+            var end   = json.indexOf("\"", start);
+            return json.substring(start, end);
+        } catch (Exception e) {
+            return "N/A";
+        }
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/bots/verification/VerificationConstants.java">
+package com.escravosdev.bots.verification;
+
+public class VerificationConstants {
+    private VerificationConstants() {}
+
+    // ── Cargos ──────────────────────────────────────────────────────────────
+    public static final String ROLE_PLEBEU          = "1456879744053149827";
+    public static final String ROLE_MEEIRO          = "1456879974219907206";
+    public static final String ROLE_FIDALGO         = "1456876613303271464";
+
+    // Religião
+    public static final String ROLE_CATOLICO        = "1457031371804381247";
+    public static final String ROLE_ORTODOXO        = "1457031659319988296";
+    public static final String ROLE_PROTESTANTE     = "1457031784167374972";
+    public static final String ROLE_PAGAO           = "1457031879365759323";
+    public static final String ROLE_MUCULMANO       = "1457032302222639149";
+    public static final String ROLE_JUDEU           = "1457032315355267174";
+    public static final String ROLE_ATEU            = "1457032320035848233";
+    public static final String ROLE_SEM_DENOM       = "1463638998235742351";
+    public static final String ROLE_RECEM_CONVERTIDO = "1457033311418454136";
+
+    // Gênero
+    public static final String ROLE_HOMEM           = "1457044028003455121";
+    public static final String ROLE_MULHER          = "1457044165472026848";
+
+    // Pings
+    public static final String ROLE_PING_ORACOES    = "1457082174628172078";
+    public static final String ROLE_PING_REVIVER    = "1457425887917117611";
+    public static final String ROLE_PING_BUMP       = "1457425817742217458";
+
+    // ── Canais ──────────────────────────────────────────────────────────────
+    public static final String CANAL_SEGUNDA_ETAPA  = "1456892158744465479";
+    public static final String CANAL_ADM            = "1481015733159723110";
+
+    // ── Tempos ──────────────────────────────────────────────────────────────
+    public static final long TIMEOUT_LEMBRETE_MS    = 60 * 60 * 1000L;  // 1h
+    public static final long TIMEOUT_FECHAR_MS      = 24 * 60 * 60 * 1000L; // 24h
+
+    // ── Perguntas ────────────────────────────────────────────────────────────
+    public static final String PERGUNTA_1 = """
+            ## Verificação
+            Seja bem-vindo(a) %s,
+            Você está solicitando entrada em um servidor católico fiel ao Magistério da Igreja e à autoridade legítima do Papa.
+            Este não é um espaço neutro. É uma comunidade confessional. A permanência aqui exige postura compatível.
+            Responda com clareza e objetividade:
+
+            **1. Qual é a sua religião?**
+            Se for católico(a), você é recém-convertido(a), está em processo de conversão ou é católico(a) desde sempre?
+            Você reconhece a autoridade do Papa e do Magistério atual da Igreja?
+
+            **2. Caso discorde de algum ensinamento da Igreja, como costuma agir?**
+            Explique brevemente sua postura.
+
+            **3. Você já leu o Catecismo da Igreja Católica, integralmente ou em partes?**
+            Já estudou outros documentos oficiais (Concílios, Encíclicas, Compêndio, etc.) ou livros de formação católica?
+            Se sim, quais?
+
+            **4. Qual é o seu sexo?**
+
+            **5. Por que deseja participar dessa comunidade?**
+            Seja específico quanto às suas intenções.
+
+            **6. Onde encontrou o servidor?**
+            Foi indicação de alguém? Se sim, informe o nome.
+            Se foi na internet, especifique onde.
+            """;
+
+    public static final String PERGUNTA_2 = """
+            Antes de ser admitido, informamos:
+            - **Este servidor não permite:**
+              * Pornografia ou qualquer conteúdo imoral
+              * Ataques à Igreja, ao Papa ou ao Magistério
+              * Sedevacantismo
+              * Militância político-partidária
+              * Teorias conspiratórias
+              * Desordem deliberada ou provocações
+
+            - Você concorda integralmente em respeitar essas normas?
+            """;
+
+    public static final String PERGUNTA_3 = """
+            - **Você deseja receber algum dos seguintes cargos?**
+              * 🙏 **Avisos de Oração** — Notifica os terços e eventos de orações.
+              * 🔔 **Lembrete de Bump** — Lembrar de dar o comando pro bot pra ajudar o server.
+              * 💬 **Incentivo ao Chat** — Lembrar de mandar mensagem no chat para animar.
+
+            Nosso servidor tem uma **tag**: **JHS** (*Jesus Hominum Salvator*).
+            Use nossa tag para participar dos nossos sorteios!
+
+            Selecione os cargos que deseja abaixo (ou nenhum):
+            """;
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/bots/verification/VerificationListener.java">
+package com.escravosdev.bots.verification;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.events.channel.ChannelCreateEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.springframework.stereotype.Component;
+
+import java.util.stream.Collectors;
+
+import static com.escravosdev.bots.verification.VerificationConstants.*;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class VerificationListener extends ListenerAdapter {
+    private final VerificationService verificationService;
+
+    // ── Canal criado (Ticket Tool abre ticket) ───────────────────────────────
+
+    @Override
+    public void onChannelCreate(ChannelCreateEvent event) {
+        if (event.getChannelType() != ChannelType.TEXT) return;
+
+        var channel = event.getChannel().asTextChannel();
+        if (!channel.getName().startsWith("ticket-")) return;
+
+        log.info("Novo ticket detectado: {}", channel.getName());
+
+        // aguarda 5s pro Ticket Tool configurar o canal e adicionar o membro
+        channel.getJDA().getGatewayPool().schedule(() -> {
+            var meeiro = channel.getGuild().getRoleById(ROLE_MEEIRO);
+            if (meeiro == null) {
+                log.error("Cargo Meeiro não encontrado: {}", ROLE_MEEIRO);
+                return;
+            }
+
+            var membro = channel.getMembers().stream()
+                    .filter(m -> !m.getUser().isBot())
+                    .filter(m -> m.getRoles().contains(meeiro))
+                    .findFirst();
+
+            if (membro.isPresent()) {
+                log.info("Meeiro encontrado: {}", membro.get().getEffectiveName());
+                verificationService.iniciarVerificacao(channel.getId(), membro.get());
+            } else {
+                log.warn("Nenhum Meeiro encontrado no canal {} — membros visíveis: {}",
+                        channel.getName(),
+                        channel.getMembers().stream()
+                                .map(m -> m.getEffectiveName() + (m.getUser().isBot() ? "(bot)" : ""))
+                                .toList());
+            }
+        }, 7, java.util.concurrent.TimeUnit.SECONDS);
+    }
+
+    // ── Mensagem recebida no ticket ──────────────────────────────────────────
+
+    @Override
+    public void onMessageReceived(MessageReceivedEvent event) {
+        if (event.getChannelType() != ChannelType.TEXT) return;
+
+        var channelName = event.getChannel().getName();
+        if (!channelName.startsWith("ticket-")) return;
+
+        // mensagem do Ticket Tool abrindo o ticket
+        if (event.getAuthor().isBot() && event.getMessage().getMentions().getUsers().size() > 0) {
+            var session = verificationService.getSession(event.getChannel().getId());
+            if (session != null) return; // sessão já existe
+
+            var guild   = event.getGuild();
+            var meeiro  = guild.getRoleById(ROLE_MEEIRO);
+            if (meeiro == null) return;
+
+            // pega o primeiro usuário mencionado que tem cargo Meeiro
+            event.getMessage().getMentions().getUsers().stream()
+                    .map(u -> guild.getMember(u))
+                    .filter(m -> m != null && !m.getUser().isBot())
+                    .filter(m -> m.getRoles().contains(meeiro))
+                    .findFirst()
+                    .ifPresent(member -> {
+                        log.info("Meeiro detectado via mensagem do Ticket Tool: {}", member.getEffectiveName());
+                        verificationService.iniciarVerificacao(event.getChannel().getId(), member);
+                    });
+            return;
+        }
+
+        // mensagem normal do usuário
+        var session = verificationService.getSession(event.getChannel().getId());
+        if (session == null) return;
+        if (event.getAuthor().isBot()) return;
+
+        verificationService.processarMensagem(
+                event.getChannel().getId(),
+                event.getAuthor().getId(),
+                event.getMessage().getContentRaw()
+        );
+
+    }
+
+    // ── Select menu (pings) ──────────────────────────────────────────────────
+
+    @Override
+    public void onStringSelectInteraction(StringSelectInteractionEvent event) {
+        if (!event.getComponentId().equals("pings")) return;
+
+        var selecionados = event.getValues();
+        verificationService.processarSelecaoPings(
+                event.getChannel().getId(),
+                event.getUser().getId(),
+                selecionados
+        );
+
+        var labels = selecionados.isEmpty() ? "Nenhum" : String.join(", ", selecionados);
+        event.reply("Selecionado: **" + labels + "**\nClique em **Confirmar** quando estiver pronto.")
+                .setEphemeral(true)
+                .queue();
+    }
+
+    // ── Botões ───────────────────────────────────────────────────────────────
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        var id    = event.getComponentId();
+        var admId = event.getUser().getId();
+
+        // ── botões no ticket ──
+        if (id.equals("pings_confirmar")) {
+            verificationService.confirmarPings(event.getChannel().getId(), event.getUser().getId());
+            event.reply("✅ Seleção confirmada!").setEphemeral(true).queue();
+            return;
+        }
+
+        if (id.equals("pings_nenhum")) {
+            verificationService.confirmarPings(event.getChannel().getId(), event.getUser().getId());
+            event.reply("✅ Confirmado sem pings.").setEphemeral(true).queue();
+            return;
+        }
+
+        // ── botões no canal ADM ──
+        if (id.startsWith("aceitar_")) {
+            var userId = id.replace("aceitar_", "");
+            event.reply("✅ Candidato aceito por <@" + admId + ">").queue();
+            verificationService.aceitarCandidato(userId, admId);
+            return;
+        }
+
+        if (id.startsWith("recusar_")) {
+            var userId = id.replace("recusar_", "");
+            event.reply("❌ Candidato recusado por <@" + admId + ">").queue();
+            verificationService.recusarCandidato(userId, admId);
+            return;
+        }
+
+        if (id.startsWith("retomar_")) {
+            var userId = id.replace("retomar_", "");
+            event.reply("▶️ Verificação retomada por <@" + admId + ">").queue();
+            verificationService.retomarVerificacao(userId);
+        }
+    }
+
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/bots/verification/VerificationService.java">
+package com.escravosdev.bots.verification;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.awt.*;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static com.escravosdev.bots.verification.VerificationConstants.*;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class VerificationService implements ApplicationContextAware {
+
+    private ApplicationContext context;
+    private final VerificationAiService aiService;
+
+    private JDA jda() {
+        return context.getBean(JDA.class);
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext ctx) {
+        this.context = ctx;
+    }
+
+
+    // ticketChannelId → session
+    private final Map<String, VerificationSession> sessions = new ConcurrentHashMap<>();
+
+    // ── Iniciar sessão ───────────────────────────────────────────────────────
+
+    public void iniciarVerificacao(String ticketChannelId, Member member) {
+        if (sessions.containsKey(ticketChannelId)) return;
+
+        var session = new VerificationSession(
+                member.getId(),
+                ticketChannelId,
+                member.getEffectiveName()
+        );
+        sessions.put(ticketChannelId, session);
+
+        var channel = jda().getTextChannelById(ticketChannelId);
+        if (channel == null) return;
+
+        channel.sendMessage(PERGUNTA_1.formatted(member.getAsMention())).queue();
+        log.info("Verificação iniciada para {} no canal {}", member.getEffectiveName(), ticketChannelId);
+    }
+
+    // ── Processar mensagem ───────────────────────────────────────────────────
+
+    public void processarMensagem(String ticketChannelId, String userId, String conteudo) {
+        var session = sessions.get(ticketChannelId);
+        if (session == null || !session.getUserId().equals(userId)) return;
+        if (session.getStep() == VerificationSession.Step.PAUSADO ||
+                session.getStep() == VerificationSession.Step.CONCLUIDO) return;
+
+        session.updateActivity();
+
+        switch (session.getStep()) {
+            case AGUARDANDO_R1 -> processarR1(session, conteudo, ticketChannelId);
+            case AGUARDANDO_R2 -> processarR2(session, conteudo, ticketChannelId);
+            default -> {}
+        }
+    }
+
+    private void processarR1(VerificationSession session, String resposta, String channelId) {
+        session.setResposta1(resposta);
+
+        var channel = jda().getTextChannelById(channelId);
+        if (channel == null) return;
+
+        channel.sendMessage("_Analisando sua resposta..._").queue(msg -> {
+            var analise = aiService.analisarResposta1(resposta);
+            session.setAnaliseR1(analise.resumo() + " | " + analise.sugestao());
+
+            msg.delete().queue();
+
+            if (analise.problematico()) {
+                session.setStep(VerificationSession.Step.PAUSADO);
+                channel.sendMessage("""
+                        ⏸️ Sua verificação foi pausada temporariamente.
+                        Um administrador irá analisá-la em breve. Por favor, aguarde.
+                        """).queue();
+                notificarAdmProblema(session, "Resposta 1", resposta, analise.resumo());
+            } else {
+                session.setStep(VerificationSession.Step.AGUARDANDO_R2);
+                channel.sendMessage(PERGUNTA_2).queue();
+            }
+        });
+    }
+
+    private void processarR2(VerificationSession session, String resposta, String channelId) {
+        session.setResposta2(resposta);
+
+        var channel = jda().getTextChannelById(channelId);
+        if (channel == null) return;
+
+        channel.sendMessage("_Analisando sua resposta..._").queue(msg -> {
+            var analise = aiService.analisarResposta2(resposta);
+            session.setAnaliseR2(analise.resumo() + " | " + analise.sugestao());
+
+            msg.delete().queue();
+
+            if (analise.problematico()) {
+                session.setStep(VerificationSession.Step.PAUSADO);
+                channel.sendMessage("""
+                        ⏸️ Sua verificação foi pausada temporariamente.
+                        Um administrador irá analisá-la em breve. Por favor, aguarde.
+                        """).queue();
+                notificarAdmProblema(session, "Resposta 2", resposta, analise.resumo());
+            } else {
+                session.setStep(VerificationSession.Step.AGUARDANDO_R3);
+                enviarPergunta3(channel);
+            }
+        });
+    }
+
+    private void enviarPergunta3(TextChannel channel) {
+        var menu = StringSelectMenu.create("pings")
+                .setPlaceholder("Selecione os cargos de ping que deseja (opcional)")
+                .setMinValues(0)
+                .setMaxValues(3)
+                .addOption("🙏 Avisos de Oração", "oracoes", "Notifica os terços e eventos de orações")
+                .addOption("🔔 Lembrete de Bump", "bump", "Lembrar de dar o comando pro bot")
+                .addOption("💬 Incentivo ao Chat", "reviver", "Lembrar de mandar mensagem no chat")
+                .build();
+
+        channel.sendMessage(PERGUNTA_3)
+                .addActionRow(menu)
+                .addActionRow(
+                        Button.success("pings_confirmar", "Confirmar seleção"),
+                        Button.secondary("pings_nenhum", "Nenhum")
+                )
+                .queue();
+    }
+
+    // ── Processar seleção de pings ───────────────────────────────────────────
+
+    public void processarSelecaoPings(String ticketChannelId, String userId,
+                                      List<String> selecionados) {
+        var session = sessions.get(ticketChannelId);
+        if (session == null || !session.getUserId().equals(userId)) return;
+
+        session.setPingOracoes(selecionados.contains("oracoes"));
+        session.setPingBump(selecionados.contains("bump"));
+        session.setPingReviver(selecionados.contains("reviver"));
+    }
+
+    public void confirmarPings(String ticketChannelId, String userId) {
+        var session = sessions.get(ticketChannelId);
+        if (session == null || !session.getUserId().equals(userId)) return;
+        if (session.getStep() != VerificationSession.Step.AGUARDANDO_R3) return;
+
+        session.setStep(VerificationSession.Step.CONCLUIDO);
+
+        var channel = jda().getTextChannelById(ticketChannelId);
+        if (channel != null) {
+            channel.sendMessage("""
+                    ✅ Respostas recebidas! Sua verificação está sendo avaliada pelos administradores.
+                    Você será notificado em breve. 🙏
+                    """).queue();
+        }
+
+        enviarBriefingAdm(session);
+    }
+
+    // ── Briefing para ADM ────────────────────────────────────────────────────
+
+    private void enviarBriefingAdm(VerificationSession session) {
+        var canal = jda().getTextChannelById(CANAL_ADM);
+        if (canal == null) {
+            log.error("Canal ADM não encontrado: {}", CANAL_ADM);
+            return;
+        }
+
+        var briefing = aiService.gerarBriefingFinal(session);
+        session.setBriefingFinal(briefing);
+
+        var pings = new ArrayList<String>();
+        if (session.isPingOracoes()) pings.add("🙏 Orações");
+        if (session.isPingBump())    pings.add("🔔 Bump");
+        if (session.isPingReviver()) pings.add("💬 Reviver Chat");
+
+        var embed = new EmbedBuilder()
+                .setTitle("📋 Verificação — " + session.getUsername())
+                .setColor(new Color(0x5865F2))
+                .setTimestamp(Instant.now())
+                .addField("👤 Usuário", "<@" + session.getUserId() + ">", true)
+                .addField("🎫 Ticket", "<#" + session.getTicketChannelId() + ">", true)
+                .addField("📌 Pings solicitados",
+                        pings.isEmpty() ? "Nenhum" : String.join(", ", pings), false)
+                .addField("🤖 Análise R1", session.getAnaliseR1(), false)
+                .addField("🤖 Análise R2", session.getAnaliseR2(), false)
+                .addField("📝 Briefing Final", briefing.length() > 1000
+                        ? briefing.substring(0, 997) + "..." : briefing, false)
+                .build();
+
+        canal.sendMessageEmbeds(embed)
+                .addActionRow(
+                        Button.success("aceitar_" + session.getUserId(), "✅ Aceitar"),
+                        Button.danger("recusar_" + session.getUserId(), "❌ Recusar")
+                )
+                .queue();
+    }
+
+    private void notificarAdmProblema(VerificationSession session, String etapa,
+                                      String resposta, String analise) {
+        var canal = jda().getTextChannelById(CANAL_ADM);
+        if (canal == null) return;
+
+        var embed = new EmbedBuilder()
+                .setTitle("⚠️ Verificação Pausada — " + session.getUsername())
+                .setColor(Color.ORANGE)
+                .setTimestamp(Instant.now())
+                .addField("👤 Usuário", "<@" + session.getUserId() + ">", true)
+                .addField("🎫 Ticket", "<#" + session.getTicketChannelId() + ">", true)
+                .addField("⚠️ Etapa problemática", etapa, false)
+                .addField("💬 Resposta do candidato",
+                        resposta.length() > 500 ? resposta.substring(0, 497) + "..." : resposta, false)
+                .addField("🤖 Análise da IA", analise, false)
+                .build();
+
+        canal.sendMessageEmbeds(embed)
+                .addActionRow(
+                        Button.success("retomar_" + session.getUserId(), "▶️ Retomar verificação"),
+                        Button.danger("recusar_" + session.getUserId(), "❌ Recusar e Kickar")
+                )
+                .queue();
+    }
+
+    // ── Aceitar / Recusar ────────────────────────────────────────────────────
+
+    public void aceitarCandidato(String userId, String admId) {
+        var session = buscarSessionPorUser(userId);
+        if (session == null) return;
+
+        var guild = jda().getGuilds().get(0);
+        guild.retrieveMemberById(userId).queue(member -> {
+
+            // remove Plebeu e Meeiro
+            List.of(ROLE_PLEBEU, ROLE_MEEIRO).forEach(roleId -> {
+                var role = guild.getRoleById(roleId);
+                if (role != null) guild.removeRoleFromMember(member, role).queue();
+            });
+
+            // sempre dá Fidalgo
+            var fidalgo = guild.getRoleById(ROLE_FIDALGO);
+            if (fidalgo != null) guild.addRoleToMember(member, fidalgo).queue();
+
+            // pings selecionados
+            if (session.isPingOracoes()) {
+                var role = guild.getRoleById(ROLE_PING_ORACOES);
+                if (role != null) guild.addRoleToMember(member, role).queue();
+            }
+            if (session.isPingBump()) {
+                var role = guild.getRoleById(ROLE_PING_BUMP);
+                if (role != null) guild.addRoleToMember(member, role).queue();
+            }
+            if (session.isPingReviver()) {
+                var role = guild.getRoleById(ROLE_PING_REVIVER);
+                if (role != null) guild.addRoleToMember(member, role).queue();
+            }
+
+            // ticket
+            var ticket = jda().getTextChannelById(session.getTicketChannelId());
+            if (ticket != null) {
+                ticket.sendMessage("""
+                    ✅ Verificação concluída! Bem-vindo(a) ao **Servo de Maria**, %s!
+                    Que Nossa Senhora interceda por você. 🙏
+                    
+                    Você já pode acessar os canais do servidor.
+                    """.formatted(member.getAsMention())).queue();
+            }
+
+            sessions.remove(session.getTicketChannelId());
+            log.info("Candidato {} aceito por {}", userId, admId);
+        });
+    }
+
+    public void recusarCandidato(String userId, String admId) {
+        var session = buscarSessionPorUser(userId);
+        if (session == null) return;
+
+        var guild = jda().getGuilds().get(0);
+        guild.retrieveMemberById(userId).queue(member -> {
+            var ticket = jda().getTextChannelById(session.getTicketChannelId());
+            if (ticket != null) {
+                ticket.sendMessage("""
+                        ❌ Infelizmente sua solicitação de entrada não foi aprovada.
+                        Se acredita que houve um engano, entre em contato com a administração.
+                        """).queue(msg ->
+                        guild.kick(member)
+                                .reason("Verificação recusada por " + admId)
+                                .queueAfter(5, java.util.concurrent.TimeUnit.SECONDS)
+                );
+            } else {
+                guild.kick(member).reason("Verificação recusada por " + admId).queue();
+            }
+
+            sessions.remove(session.getTicketChannelId());
+            log.info("Candidato {} recusado e kickado por {}", userId, admId);
+        });
+    }
+
+    public void retomarVerificacao(String userId) {
+        var session = buscarSessionPorUser(userId);
+        if (session == null || session.getStep() != VerificationSession.Step.PAUSADO) return;
+
+        session.setStep(VerificationSession.Step.AGUARDANDO_R2);
+
+        var channel = jda().getTextChannelById(session.getTicketChannelId());
+        if (channel != null) {
+            channel.sendMessage("""
+                    ▶️ Sua verificação foi retomada por um administrador.
+                    Por favor, continue respondendo as perguntas.
+                    """).queue();
+            channel.sendMessage(PERGUNTA_2).queue();
+        }
+    }
+
+    // ── Timeout / Lembretes ──────────────────────────────────────────────────
+
+    @Scheduled(fixedRate = 60_000) // verifica a cada 1 min
+    public void verificarTimeouts() {
+        var agora = Instant.now();
+
+        sessions.forEach((channelId, session) -> {
+            if (session.getStep() == VerificationSession.Step.CONCLUIDO) return;
+            if (session.getStep() == VerificationSession.Step.PAUSADO) return;
+
+            var inativo = ChronoUnit.MILLIS.between(session.getLastActivity(), agora);
+
+            if (inativo >= TIMEOUT_FECHAR_MS) {
+                // 24h sem resposta → fecha
+                fecharPorTimeout(session);
+            } else if (inativo >= TIMEOUT_LEMBRETE_MS * (session.getLembretes() + 1)) {
+                // manda lembrete a cada 30min
+                enviarLembrete(session);
+            }
+        });
+    }
+
+    private void enviarLembrete(VerificationSession session) {
+        var channel = jda().getTextChannelById(session.getTicketChannelId());
+        if (channel == null) return;
+
+        session.setLembretes(session.getLembretes() + 1);
+
+        channel.sendMessage("""
+                👋 <@%s>, você ainda está aí?
+                Por favor, continue respondendo as perguntas de verificação.
+                Caso não responda em %d horas, o ticket será fechado automaticamente.
+                """.formatted(
+                session.getUserId(),
+                (TIMEOUT_FECHAR_MS - (TIMEOUT_LEMBRETE_MS * session.getLembretes())) / 3_600_000
+        )).queue();
+    }
+
+    private void fecharPorTimeout(VerificationSession session) {
+        var channel = jda().getTextChannelById(session.getTicketChannelId());
+        if (channel != null) {
+            channel.sendMessage("""
+                    ⏰ Ticket encerrado por inatividade.
+                    Se ainda deseja entrar no servidor, abra um novo ticket.
+                    """).queue();
+        }
+        sessions.remove(session.getTicketChannelId());
+        log.info("Ticket {} fechado por timeout", session.getTicketChannelId());
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    public VerificationSession getSession(String channelId) {
+        return sessions.get(channelId);
+    }
+
+    private VerificationSession buscarSessionPorUser(String userId) {
+        return sessions.values().stream()
+                .filter(s -> s.getUserId().equals(userId))
+                .findFirst()
+                .orElse(null);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/bots/verification/VerificationSession.java">
+package com.escravosdev.bots.verification;
+
+import lombok.Data;
+
+import java.time.Instant;
+
+@Data
+public class VerificationSession {
+
+    public enum Step {
+        AGUARDANDO_R1,
+        AGUARDANDO_R2,
+        AGUARDANDO_R3,
+        PAUSADO, // ia detectou problema - aguardando ADM
+        CONCLUIDO
+    }
+
+    private final String userId;
+    private final String ticketChannelId;
+    private final String username;
+
+    private Step step = Step.AGUARDANDO_R1;
+
+    private String resposta1;
+    private String resposta2;
+    private String resposta3;
+
+    private Instant lastActivity = Instant.now();
+    private int lembretes = 0;
+
+    private boolean pingOracoes  = false;
+    private boolean pingBump     = false;
+    private boolean pingReviver  = false;
+
+    private String analiseR1;
+    private String analiseR2;
+    private String briefingFinal;
+
+    public void updateActivity() {
+        this.lastActivity = Instant.now();
+        this.lembretes = 0;
+    }
+
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/bots/BotReadyListener.java">
+package com.escravosdev.bots;
+
+import com.escravosdev.api.config.GuildRoleCache;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class BotReadyListener extends ListenerAdapter {
+
+    private final GuildRoleCache guildRoleCache;
+
+    @Override
+    public void onReady(ReadyEvent event) {
+        log.info("Bot online: {}", event.getJDA().getSelfUser().getName());
+        guildRoleCache.sync();
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/config/GuildRoleCache.java">
+package com.escravosdev.api.config;
+
+import com.escravosdev.api.entities.discord.DiscordProperties;
+import com.escravosdev.api.entities.discord.GuildRole;
+import com.escravosdev.api.repo.CsrfTokenRepo;
+import com.escravosdev.api.repo.GuildRoleRepo;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class GuildRoleCache {
+
+    private final GuildRoleRepo guildRoleRepo;
+    private final DiscordProperties props;
+    private final RestClient restClient = RestClient.create();
+
+    private final CsrfTokenRepo csrfTokenRepo;
+
+    private static final String DISCORD_API = "https://discord.com/api/v10";
+    private static final String CDN = "https://cdn.discordapp.com";
+
+    @Transactional
+    @Scheduled(fixedRateString = "PT30M")
+    public void sync() {
+        log.info("Sincronizando roles do servidor via API REST...");
+        try {
+            List<Map<String, Object>> roles = restClient.get()
+                    .uri(DISCORD_API + "/guilds/" + props.guildId() + "/roles")
+                    .header("Authorization", "Bot " + props.botToken())
+                    .retrieve()
+                    .body(List.class);
+
+            if (roles == null || roles.isEmpty()) {
+                log.error("Nenhuma role retornada pela API");
+                return;
+            }
+
+            for (var roleData : roles) {
+                var id       = (String) roleData.get("id");
+                var name     = (String) roleData.get("name");
+                var position = (Integer) roleData.get("position");
+                var colorInt = (Integer) roleData.get("color");
+                var iconHash = (String) roleData.get("icon");
+
+                // gradiente nativo do Discord
+                String gradient = null;
+                var colors = (Map<String, Object>) roleData.get("colors");
+                if (colors != null) {
+                    var secondary = (Integer) colors.get("secondary_color");
+                    if (secondary != null) {
+                        var primary   = (Integer) colors.get("primary_color");
+                        var tertiary  = (Integer) colors.get("tertiary_color");
+                        var c1 = String.format("#%06x", primary);
+                        var c2 = String.format("#%06x", secondary);
+                        gradient = tertiary != null
+                                ? String.format("linear-gradient(135deg, %s, %s, %s)",
+                                c1, c2, String.format("#%06x", tertiary))
+                                : String.format("linear-gradient(135deg, %s, %s)", c1, c2);
+                    }
+                }
+
+                var role = guildRoleRepo.findById(id).orElse(new GuildRole());
+                role.setId(id);
+                role.setName(name);
+                role.setPosition(position);
+                role.setColor(colorInt != null && colorInt != 0
+                        ? String.format("#%06x", colorInt) : null);
+                role.setIconUrl(iconHash != null
+                        ? CDN + "/role-icons/" + id + "/" + iconHash + ".png"
+                        : null);
+
+                // só sobrescreve gradient se vier da API — não apaga o que foi definido manualmente
+                if (gradient != null) role.setGradient(gradient);
+
+                role.setUpdatedAt(Instant.now());
+                guildRoleRepo.save(role);
+            }
+
+            log.info("Sync concluído — {} roles salvas.", roles.size());
+        } catch (Exception e) {
+            log.error("Erro ao sincronizar roles: {}", e.getMessage());
+        }
+    }
+
+    @Scheduled(fixedRate = 3600000)
+    public void cleanExpiredCsrf() {
+        csrfTokenRepo.deleteByCreatedAtBefore(Instant.now().minus(Duration.ofMinutes(31)));
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/CommentController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.dtos.request.CreateCommentRequest;
+import com.escravosdev.api.dtos.response.CommentResponse;
+import com.escravosdev.api.entities.discord.DiscordRoles;
+import com.escravosdev.api.services.CommentService;
+import io.jsonwebtoken.Claims;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/comments")
+@RequiredArgsConstructor
+public class CommentController {
+
+    private final CommentService commentService;
+
+    
+    @GetMapping("/post/{postId}")
+    public ResponseEntity<List<CommentResponse>> listByPost(@PathVariable UUID postId) {
+        Claims claims = null;
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Claims) {
+            claims = (Claims) auth.getPrincipal();
+        }
+        return ResponseEntity.ok(commentService.listByPost(postId, claims));
+    }
+
+    
+    @PostMapping("/post/{postId}")
+    public ResponseEntity<CommentResponse> create(
+            @PathVariable UUID postId,
+            @RequestBody CreateCommentRequest req
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(commentService.create(postId, req, getClaims()));
+    }
+
+    
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<CommentResponse> delete(@PathVariable UUID commentId) {
+        requireAdm();
+        return ResponseEntity.ok(commentService.delete(commentId));
+    }
+
+    private void requireAdm() {
+        if (!DiscordRoles.isAdm(getClaims())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+    }
+
+    private Claims getClaims() {
+        return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/ModerationController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.dtos.response.PostResponse;
+import com.escravosdev.api.entities.discord.DiscordRoles;
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.repo.PostRepo;
+import com.escravosdev.api.services.ModerationService;
+import io.jsonwebtoken.Claims;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@RestController
+@RequestMapping("/moderation")
+@RequiredArgsConstructor
+public class ModerationController {
+
+    private final ModerationService moderationService;
+    private final PostRepo postRepo;
+
+    
+    @GetMapping("/pending")
+    public ResponseEntity<List<PostResponse>> listPending() {
+        requireAdm();
+        return ResponseEntity.ok(moderationService.listPending());
+    }
+
+    
+    @PostMapping("/approve/{id}")
+    public ResponseEntity<PostResponse> approve(@PathVariable UUID id) {
+        requireAdmCanApprove();
+        log.info("Post aprovado: {}", id);
+        return ResponseEntity.ok(moderationService.approve(id, getClaims()));
+    }
+
+    
+    @PostMapping("/reject/{id}")
+    public ResponseEntity<PostResponse> reject(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String reason
+    ) {
+        requireAdm();
+        return ResponseEntity.ok(moderationService.reject(id, getClaims()));
+    }
+
+    
+    @GetMapping("/rejected")
+    public ResponseEntity<List<PostResponse>> listRejected() {
+        requireAdm();
+        return ResponseEntity.ok(moderationService.listRejected());
+    }
+
+    
+    @PostMapping("/archive/{id}")
+    public ResponseEntity<PostResponse> archive(@PathVariable UUID id) {
+        requireAdm();
+        return ResponseEntity.ok(moderationService.archive(id, getClaims()));
+    }
+
+    
+    @GetMapping("/archived")
+    public ResponseEntity<List<PostResponse>> listArchived() {
+        requireAdm();
+        return ResponseEntity.ok(moderationService.listArchived());
+    }
+
+    
+    @PostMapping("/close/{id}")
+    public ResponseEntity<PostResponse> close(@PathVariable UUID id) {
+        return ResponseEntity.ok(moderationService.close(id, getClaims()));
+    }
+
+    
+    @GetMapping("/closed")
+    public ResponseEntity<List<PostResponse>> listClosed() {
+        requireAdm();
+        return ResponseEntity.ok(moderationService.listClosed());
+    }
+
+    
+    @PostMapping("/reopen/{id}")
+    public ResponseEntity<PostResponse> reopen(@PathVariable UUID id) {
+        return ResponseEntity.ok(moderationService.reopen(id, getClaims()));
+    }
+
+    
+    @PostMapping("/unarchive/{id}")
+    public ResponseEntity<PostResponse> unarchive(@PathVariable UUID id) {
+        return ResponseEntity.ok(moderationService.unarchive(id, getClaims()));
+    }
+
+    private void requireAdm() {
+        if (!DiscordRoles.isAdm(getClaims())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão");
+        }
+    }
+
+    private void requireAdmCanApprove() {
+        var claims = getClaims();
+        var canApprove = DiscordRoles.hasRole(claims, DiscordRoles.REI) ||
+                DiscordRoles.hasRole(claims, DiscordRoles.AUTORIDADE_REAL) ||
+                DiscordRoles.hasRole(claims, DiscordRoles.DUQUE) ||
+                DiscordRoles.hasRole(claims, DiscordRoles.MARQUES) ||
+                DiscordRoles.hasRole(claims, DiscordRoles.ROLE_SECRETA);
+        if (!canApprove) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para aprovar");
+        }
+    }
+
+    private Claims getClaims() {
+        return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/QuestionController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.dtos.request.CreateQuestionRequest;
+import com.escravosdev.api.dtos.response.PostResponse;
+import com.escravosdev.api.services.QuestionService;
+import io.jsonwebtoken.Claims;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/questions")
+@RequiredArgsConstructor
+public class QuestionController {
+
+    private final QuestionService questionService;
+
+    
+    @GetMapping
+    public ResponseEntity<List<PostResponse>> list() {
+        return ResponseEntity.ok(questionService.list());
+    }
+
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<PostResponse> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(questionService.getById(id));
+    }
+
+    
+    @PostMapping
+    public ResponseEntity<PostResponse> create(@RequestBody CreateQuestionRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(questionService.create(req, getClaims()));
+    }
+
+    private Claims getClaims() {
+        return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/response/CommentResponse.java">
+package com.escravosdev.api.dtos.response;
+
+import com.escravosdev.api.entities.Comment;
+import com.escravosdev.api.entities.Vote;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+public record CommentResponse(
+        UUID id,
+        UUID postId,
+        UUID parentId,
+        UserResponse author,
+        String content,
+        long upvotes,
+        long downvotes,
+        String userVote,
+        List<CommentResponse> replies,
+        Instant createdAt,
+        Instant updatedAt
+) {
+    public static CommentResponse from(Comment comment, List<CommentResponse> replies, VoteResponse votes) {
+        boolean deleted = comment.isDeleted();
+        return new CommentResponse(
+                comment.getId(),
+                comment.getPost().getId(),
+                comment.getParent() != null ? comment.getParent().getId() : null,
+                deleted ? null : UserResponse.from(comment.getAuthor()),
+                deleted ? "[deletado]" : comment.getContent(),
+                votes != null ? votes.upvotes() : 0,
+                votes != null ? votes.downvotes() : 0,
+                votes != null ? votes.userVote() : null,
+                replies,
+                comment.getCreatedAt(),
+                comment.getUpdatedAt()
+        );
+    }
+
+    private static UserResponse deletedUser() {
+        return new UserResponse(
+                null,
+                "[deletado]",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    public static CommentResponse from(Comment comment, List<CommentResponse> replies) {
+        return from(comment, replies, null);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/dtos/response/PostResponse.java">
+package com.escravosdev.api.dtos.response;
+
+import com.escravosdev.api.entities.Post;
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+public record PostResponse (
+        UUID id,
+        PostType type,
+        PostStatus status,
+        String title,
+        String content,
+        String coverImageUrl,
+        List<String> imageUrls,
+        UserResponse author,
+        CategoryResponse category,
+        List<String> tags,
+        boolean publishToSite,
+        boolean publishToDiscord,
+        boolean publishToInstagram,
+        long upvotes,
+        long downvotes,
+        String userVote,
+        Instant createdAt,
+        Instant updatedAt
+) {
+    public record CategoryResponse(
+            UUID id,
+            String name,
+            String slug
+    ) {}
+
+    public static PostResponse from(Post post, VoteResponse votes) {
+        var author = UserResponse.from(post.getAuthor());
+
+        var category = post.getCategory() != null
+                ? new CategoryResponse(
+                post.getCategory().getId(),
+                post.getCategory().getName(),
+                post.getCategory().getSlug())
+                : null;
+
+        var imageUrls = post.getImages().stream()
+                .map(img -> img.getUrl())
+                .toList();
+
+        var tagNames = post.getTags().stream()
+                .map(tag -> tag.getName())
+                .toList();
+
+        return new PostResponse(
+                post.getId(),
+                post.getType(),
+                post.getStatus(),
+                post.getTitle(),
+                post.getContent(),
+                post.getCoverImageUrl(),
+                imageUrls,
+                author,
+                category,
+                tagNames,
+                post.isPublishToSite(),
+                post.isPublishToDiscord(),
+                post.isPublishToInstagram(),
+                votes != null ? votes.upvotes() : 0,
+                votes != null ? votes.downvotes() : 0,
+                votes != null ? votes.userVote() : null,
+                post.getCreatedAt(),
+                post.getUpdatedAt()
+        );
+    }
+
+    public static PostResponse from(Post post) {
+        return from(post, null);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/Category.java">
+package com.escravosdev.api.entities;
+
+import com.escravosdev.api.entities.enums.PostType;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+@Entity
+@Table(name = "categories")
+@Getter @Setter @NoArgsConstructor
+public class Category {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(nullable = false, unique = true)
+    private String name; // Catequese, Santos, Teologia...
+
+    @Column(nullable = false, unique = true)
+    private String slug; // catequese, santos, teologia...
+
+    private String description;
+
+    private String discordChannelId; // ID do canal fórum no servidor
+
+    @Enumerated(EnumType.STRING)
+    private PostType type; // BLOG, FORUM, QUESTION, ou null = todos
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/PostImage.java">
+package com.escravosdev.api.entities;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+@Entity
+@Table(name = "post_images")
+@Getter @Setter @NoArgsConstructor
+public class PostImage {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(nullable = false)
+    private String url;
+
+    @Column(nullable = false)
+    private Integer position; // ordem no carrossel
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/User.java">
+package com.escravosdev.api.entities;
+
+import com.escravosdev.api.entities.discord.UserRole;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Entity
+@Table(name = "users")
+@Setter
+@Getter
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(unique = true, nullable = false)
+    private String discordId;
+
+    private String username;   // display name
+    private String globalName; // (@username)
+    private String email;
+    private String avatarHash;
+
+    // visual
+    private String displayColor;    // mapeado manualmente
+    private String gender;          // mapeado manualmente
+    private String religion;        // mapeado manualmente
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserRole> roles = new ArrayList<>();
+
+    // pra ADM
+    private boolean banned = false;
+    private boolean muted = false;
+
+    @CreationTimestamp
+    private Instant createdAt;
+    private Instant lastLogin;
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/CategoryRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.Category;
+import com.escravosdev.api.entities.enums.PostType;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface CategoryRepo extends JpaRepository<Category, UUID> {
+    Optional<Category> findBySlug(String slug);
+    List<Category> findByType(PostType type);
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/TagRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.Tag;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+public interface TagRepo extends JpaRepository<Tag, UUID> {
+    Optional<Tag> findBySlug(String slug);
+    Set<Tag> findBySlugIn(List<String> slugs);
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/UserRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface UserRepo extends JpaRepository<User, UUID> {
+    Optional<User> findByDiscordId(String discordId);
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/CommentService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.dtos.request.CreateCommentRequest;
+import com.escravosdev.api.dtos.response.CommentResponse;
+import com.escravosdev.api.entities.Comment;
+import com.escravosdev.api.entities.enums.PostType;
+import com.escravosdev.api.entities.discord.DiscordRoles;
+import com.escravosdev.api.repo.CommentRepo;
+import com.escravosdev.api.repo.PostRepo;
+import com.escravosdev.api.repo.UserRepo;
+import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class CommentService {
+
+    private final CommentRepo commentRepo;
+    private final PostRepo postRepo;
+    private final UserRepo userRepo;
+    private final VoteService voteService;
+
+    public List<CommentResponse> listByPost(UUID postId, Claims claims) {
+        var comments = commentRepo.findByPostIdFetched(postId);
+
+        return comments.stream()
+                .filter(c -> c.getParent() == null)
+                .map(root -> {
+                    var rootVotes = voteService.buildCommentVoteResponse(root.getId(), claims);
+                    var replies = comments.stream()
+                            .filter(c -> c.getParent() != null && c.getParent().getId().equals(root.getId()))
+                            .map(reply -> {
+                                var replyVotes = voteService.buildCommentVoteResponse(reply.getId(), claims);
+                                return CommentResponse.from(reply, List.of(), replyVotes);
+                            })
+                            .toList();
+                    return CommentResponse.from(root, replies, rootVotes);
+                })
+                .toList();
+    }
+
+    @Transactional
+    public CommentResponse create(UUID postId, CreateCommentRequest req, Claims claims) {
+        var post = postRepo.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // dúvidas: só Orientador e ADM comentam
+        if (post.getType() == PostType.QUESTION) {
+            if (!DiscordRoles.canAnswerDuvida(claims)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Apenas Orientadores e ADMs podem responder dúvidas");
+            }
+        }
+
+        var author = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (author.isMuted() || author.isBanned()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você está impedido de comentar");
+        }
+
+        var comment = new Comment();
+        comment.setPost(post);
+        comment.setAuthor(author);
+        comment.setContent(req.content());
+
+        if (req.parentId() != null) {
+            var parent = commentRepo.findById(req.parentId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comentário pai não encontrado"));
+            // não permite reply de reply (só 2 níveis)
+            if (parent.getParent() != null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é permitido responder uma resposta");
+            }
+            comment.setParent(parent);
+        }
+
+        return CommentResponse.from(commentRepo.save(comment), List.of());
+    }
+
+    @Transactional
+    public CommentResponse delete(UUID commentId) {
+        var comment = commentRepo.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        comment.setDeleted(true);
+        return CommentResponse.from(commentRepo.save(comment), List.of());
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/ModerationService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.dtos.response.PostResponse;
+import com.escravosdev.api.entities.discord.DiscordRoles;
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
+import com.escravosdev.api.repo.PostRepo;
+import com.escravosdev.api.repo.UserRepo;
+import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class ModerationService {
+
+    private final PostRepo postRepo;
+    private final UserRepo userRepo;
+
+
+    public List<PostResponse> listPending() {
+        return postRepo.findByStatusFetched(PostStatus.PENDING_APPROVAL)
+                .stream().map(PostResponse::from).toList();
+    }
+
+    @Transactional
+    public PostResponse approve(UUID id, Claims claims) {
+        var post = postRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getStatus() != PostStatus.PENDING_APPROVAL) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Post não está pendente");
+        }
+
+        var moderator = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        post.setStatus(PostStatus.PUBLISHED);
+        post.setApprovedBy(moderator);
+        post.setApprovedAt(Instant.now());
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional
+    public PostResponse reject(UUID id, Claims claims) {
+        var post = postRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        post.setStatus(PostStatus.REJECTED);
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> listRejected() {
+        return postRepo.findByStatusInFetched(
+                List.of(PostStatus.REJECTED)
+        ).stream().map(PostResponse::from).toList();
+    }
+
+    @Transactional
+    public PostResponse archive(UUID id, Claims claims) {
+        var post = postRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        post.setStatus(PostStatus.ARCHIVED);
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> listArchived() {
+        return postRepo.findByStatusInFetched(
+                List.of(PostStatus.ARCHIVED)
+        ).stream().map(PostResponse::from).toList();
+    }
+
+    @Transactional
+    public PostResponse close(UUID id, Claims claims) {
+        var post = postRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.QUESTION) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Só dúvidas podem ser fechadas");
+        }
+        if (post.getStatus() == PostStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dúvida já está fechada");
+        }
+
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        boolean isAuthor     = post.getAuthor().getId().equals(user.getId());
+        boolean isOrientador = DiscordRoles.isOrientador(claims);
+        boolean isAdm        = DiscordRoles.isAdm(claims);
+
+        if (!isAuthor || !isOrientador || !isAdm) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para fechar esta dúvida");
+        }
+
+        post.setStatus(PostStatus.CLOSED);
+        post.setClosedBy(user);
+        post.setClosedAt(Instant.now());
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> listClosed() {
+        return postRepo.findByStatusInFetched(
+                List.of(PostStatus.CLOSED)
+        ).stream().map(PostResponse::from).toList();
+    }
+
+    @Transactional
+    public PostResponse reopen(UUID id, Claims claims) {
+        var post = postRepo.findByIdFetched(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.QUESTION) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Só dúvidas podem ser reabertas");
+        }
+        if (post.getStatus() != PostStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dúvida não está fechada");
+        }
+
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        boolean isAuthor     = post.getAuthor().getId().equals(user.getId());
+        boolean isOrientador = DiscordRoles.isOrientador(claims);
+        boolean isAdm        = DiscordRoles.isAdm(claims);
+
+        if (!isAuthor && !isOrientador && !isAdm) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para reabrir esta dúvida");
+        }
+
+        post.setStatus(PostStatus.PUBLISHED);
+        post.setClosedBy(null);
+        post.setClosedAt(null);
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional
+    public PostResponse unarchive(UUID id, Claims claims) {
+        var post = postRepo.findByIdFetched(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getStatus() != PostStatus.ARCHIVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Post não está arquivado");
+        }
+
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        boolean isAdm    = DiscordRoles.isAdm(claims);
+        boolean isAuthor = post.getAuthor().getId().equals(user.getId());
+
+        // blog → só ADM | fórum e dúvidas → autor ou ADM
+        if (post.getType() == PostType.BLOG && !isAdm) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para desarquivar post do blog");
+        }
+        if (post.getType() != PostType.BLOG && !isAdm && !isAuthor) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para desarquivar este post");
+        }
+
+        post.setStatus(PostStatus.PUBLISHED);
+        return PostResponse.from(postRepo.save(post));
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/ApiApplication.java">
+package com.escravosdev.api;
+
+import com.escravosdev.api.entities.discord.DiscordProperties;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@SpringBootApplication(scanBasePackages = "com.escravosdev")
+@EnableConfigurationProperties(DiscordProperties.class)
+@EnableScheduling
+public class ApiApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ApiApplication.class, args);
+	}
+
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/bots/BotConfig.java">
+package com.escravosdev.bots;
+
+import com.escravosdev.api.entities.discord.DiscordProperties;
+import com.escravosdev.bots.verification.VerificationListener;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Slf4j
+@Configuration
+@RequiredArgsConstructor
+public class BotConfig {
+
+    private final DiscordProperties props;
+
+    @Bean
+    public JDA jda(BotReadyListener botReadyListener, VerificationListener verificationListener) throws InterruptedException {
+        log.info("Iniciando bot...");
+
+        var jda = JDABuilder.createDefault(props.botToken())
+                .enableIntents(
+                        GatewayIntent.GUILD_MEMBERS,
+                        GatewayIntent.GUILD_MESSAGES,
+                        GatewayIntent.GUILD_PRESENCES,
+                        GatewayIntent.MESSAGE_CONTENT
+                )
+                .addEventListeners(botReadyListener, verificationListener)
+                .build();
+
+        log.info("JDA build() concluído, aguardando ready...");
+        jda.awaitReady();
+        log.info("JDA awaitReady() concluído — status: {}", jda.getStatus());
+
+        return jda;
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/JwtService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.entities.discord.DiscordUser;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import java.util.Date;
+
+@Service
+public class JwtService {
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.expiration}")
+    private long expiration;
+
+    private SecretKey getKey() {
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+    }
+
+    public String generateToken(DiscordUser user) {
+        return Jwts.builder()
+                .subject(user.id())
+                .claim("username", user.username())
+                .claim("email", user.email())
+                .claim("avatar", user.avatar())
+                .claim("roles", user.roles())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getKey())
+                .compact();
+    }
+
+    public Claims validateAndParse(String token) {
+        return Jwts.parser()
+                .verifyWith(getKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+}
+</file>
+
+<file path="pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.0.3</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.escravosdev</groupId>
+	<artifactId>api</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>api</name>
+	<description>Site Escravos de Maria</description>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>25</java.version>
+	</properties>
+	<dependencies>
+		<!-- Web -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- Security -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<!-- JPA + Postgres -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Flyway -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
+		<!-- Validation -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- JWT — só a 0.12.3, chega de duplicata -->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.12.3</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.12.3</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.12.3</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Lombok -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Config Processor -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- DevTools -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Test -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!--	Documentation-->
+<!--		<dependency>-->
+<!--			<groupId>org.springdoc</groupId>-->
+<!--			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>-->
+<!--			<version>2.8.5</version>-->
+<!--		</dependency>-->
+
+
+		<!-- Bot -->
+		<dependency>
+			<groupId>net.dv8tion</groupId>
+			<artifactId>JDA</artifactId>
+			<version>5.2.1</version>
+		</dependency>
+	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+</file>
+
+<file path="src/main/java/com/escravosdev/api/config/JwtAuthenticationFilter.java">
+package com.escravosdev.api.config;
+
+import com.escravosdev.api.entities.discord.DiscordRoles;
+import com.escravosdev.api.services.JwtService;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.util.ArrayList;
+import java.io.IOException;
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final JwtService jwtService;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+
+        String token = null;
+
+        var authHeader = request.getHeader("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        if (token != null) {
+            try {
+                var claims = jwtService.validateAndParse(token);
+                var auth = new UsernamePasswordAuthenticationToken(
+                        claims, null, extractAuthorities(claims)
+                );
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private List<SimpleGrantedAuthority> extractAuthorities(Claims claims) {
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+
+        if (DiscordRoles.isAdm(claims)) authorities.add(new SimpleGrantedAuthority("ROLE_ADM"));
+        if (DiscordRoles.isOrientador(claims)) authorities.add(new SimpleGrantedAuthority("ROLE_ORIENTADOR"));
+
+        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+
+        return authorities;
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/BlogController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.dtos.request.CreateBlogPostRequest;
+import com.escravosdev.api.dtos.request.UpdateBlogPostRequest;
+import com.escravosdev.api.dtos.response.PostResponse;
+import com.escravosdev.api.entities.discord.DiscordRoles;
+import com.escravosdev.api.services.BlogService;
+import io.jsonwebtoken.Claims;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/blog")
+@RequiredArgsConstructor
+public class BlogController {
+
+    private final BlogService blogService;
+
+    
+    @GetMapping
+    public ResponseEntity<List<PostResponse>> list() {
+        return ResponseEntity.ok(blogService.list());
+    }
+
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<PostResponse> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(blogService.getById(id, getOptionalClaims()));
+    }
+
+    
+    @PostMapping
+    public ResponseEntity<PostResponse> create(@RequestBody CreateBlogPostRequest req) {
+        var claims = getClaims();
+        if (!DiscordRoles.canCreateBlogPost(claims)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para postar no blog");
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(blogService.create(req, claims));
+    }
+
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<PostResponse> update(
+            @PathVariable UUID id,
+            @RequestBody UpdateBlogPostRequest req
+    ) {
+        return ResponseEntity.ok(blogService.update(id, req, getClaims()));
+    }
+
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        var claims = getClaims();
+        if (!DiscordRoles.isAdm(claims)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para deletar");
+        }
+        blogService.delete(id, claims);
+        return ResponseEntity.noContent().build();
+    }
+
+    private Claims getClaims() {
+        return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    private Claims getOptionalClaims() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Claims c) return c;
+        return null;
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/ForumController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.dtos.request.CreateForumPostRequest;
+import com.escravosdev.api.dtos.request.UpdateForumPostRequest;
+import com.escravosdev.api.dtos.response.PostResponse;
+import com.escravosdev.api.services.ForumService;
+import io.jsonwebtoken.Claims;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/forum")
+@RequiredArgsConstructor
+public class ForumController {
+
+    private final ForumService forumService;
+
+    
+    @GetMapping
+    public ResponseEntity<List<PostResponse>> list() {
+        return ResponseEntity.ok(forumService.list(getOptionalClaims()));
+    }
+
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<PostResponse> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(forumService.getById(id, getOptionalClaims()));
+    }
+
+    
+    @PostMapping
+    public ResponseEntity<PostResponse> create(@RequestBody CreateForumPostRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(forumService.create(req, getClaims()));
+    }
+
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<PostResponse> update(
+            @PathVariable UUID id,
+            @RequestBody UpdateForumPostRequest req
+    ) {
+        return ResponseEntity.ok(forumService.update(id, req, getClaims()));
+    }
+
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        forumService.delete(id, getClaims());
+        return ResponseEntity.noContent().build();
+    }
+
+    private Claims getClaims() {
+        return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    private Claims getOptionalClaims() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Claims c) return c;
+        return null;
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/entities/Post.java">
+package com.escravosdev.api.entities;
+
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.Instant;
+import java.util.*;
+
+@Entity
+@Table(name = "posts", indexes = {
+        @Index(name = "idx_post_type",       columnList = "type"),
+        @Index(name = "idx_post_status",     columnList = "status"),
+        @Index(name = "idx_post_created_at", columnList = "createdAt")
+})
+@Getter @Setter @NoArgsConstructor
+public class Post {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    // --- autor ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    // --- tipo e status ---
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PostType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PostStatus status = PostStatus.DRAFT;
+
+    // --- conteúdo ---
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String content;
+
+    private String coverImageUrl;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC")
+    private Set<PostImage> images = new HashSet<>();
+
+    // --- categoria e tags ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+    @ManyToMany
+    @JoinTable(
+            name = "post_tags",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
+
+    // --- publicação — só BLOG usa ---
+    private boolean publishToSite      = true;
+    private boolean publishToDiscord   = false;
+    private boolean publishToInstagram = false;
+    private String  discordMessageId;
+    private String  instagramPostId;
+
+    // --- moderação ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by")
+    private User approvedBy;
+    private Instant approvedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "closed_by")
+    private User closedBy;
+    private Instant closedAt;
+
+    // --- timestamps ---
+    @CreationTimestamp
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    private Instant updatedAt;
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/repo/PostRepo.java">
+package com.escravosdev.api.repo;
+
+import com.escravosdev.api.entities.Post;
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface PostRepo extends JpaRepository<Post, UUID> {
+    Page<Post> findByTypeAndStatus(PostType type, PostStatus status, Pageable pageable);
+    Page<Post> findByStatus(PostStatus status, Pageable pageable);
+    @Query("""
+    SELECT p FROM Post p
+    LEFT JOIN FETCH p.author
+    LEFT JOIN FETCH p.category
+    LEFT JOIN FETCH p.tags
+    LEFT JOIN FETCH p.images
+    WHERE p.status = :status
+""")
+    List<Post> findByStatusWithDetails(@Param("status") PostStatus status);
+    @Query("""
+    SELECT DISTINCT p FROM Post p
+    LEFT JOIN FETCH p.author
+    LEFT JOIN FETCH p.category
+    LEFT JOIN FETCH p.tags
+    LEFT JOIN FETCH p.images
+    WHERE p.status = :status
+""")
+    List<Post> findByStatusFetched(@Param("status") PostStatus status);
+
+    @Query("""
+    SELECT DISTINCT p FROM Post p
+    LEFT JOIN FETCH p.author
+    LEFT JOIN FETCH p.category
+    LEFT JOIN FETCH p.tags
+    LEFT JOIN FETCH p.images
+    WHERE p.type = :type AND p.status IN :statuses
+""")
+    List<Post> findByTypeAndStatusInFetched(@Param("type") PostType type, @Param("statuses") List<PostStatus> statuses);
+
+    @Query("""
+    SELECT DISTINCT p FROM Post p
+    LEFT JOIN FETCH p.author
+    LEFT JOIN FETCH p.category
+    LEFT JOIN FETCH p.tags
+    LEFT JOIN FETCH p.images
+    WHERE p.type = :type AND p.status = :status
+""")
+    List<Post> findByTypeAndStatusFetched(@Param("type") PostType type, @Param("status") PostStatus status);
+
+    @Query("""
+    SELECT DISTINCT p FROM Post p
+    LEFT JOIN FETCH p.author
+    LEFT JOIN FETCH p.category
+    LEFT JOIN FETCH p.tags
+    LEFT JOIN FETCH p.images
+    WHERE p.status IN :statuses
+""")
+    List<Post> findByStatusInFetched(@Param("statuses") List<PostStatus> statuses);
+    @Query("""
+    SELECT DISTINCT p FROM Post p
+    LEFT JOIN FETCH p.author
+    LEFT JOIN FETCH p.category
+    LEFT JOIN FETCH p.tags
+    LEFT JOIN FETCH p.images
+    WHERE p.id = :id
+""")
+    Optional<Post> findByIdFetched(@Param("id") UUID id);
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/BlogService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.dtos.request.CreateBlogPostRequest;
+import com.escravosdev.api.dtos.request.UpdateBlogPostRequest;
+import com.escravosdev.api.dtos.response.PostResponse;
+import com.escravosdev.api.entities.Post;
+import com.escravosdev.api.entities.PostImage;
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
+import com.escravosdev.api.repo.CategoryRepo;
+import com.escravosdev.api.repo.PostRepo;
+import com.escravosdev.api.repo.TagRepo;
+import com.escravosdev.api.repo.UserRepo;
+import io.jsonwebtoken.Claims;
+
+import lombok.RequiredArgsConstructor;
+import org.hibernate.sql.Update;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+public class BlogService {
+
+    private final PostRepo postRepo;
+    private final UserRepo userRepo;
+    private final CategoryRepo categoryRepo;
+    private final TagRepo tagRepo;
+
+    @Transactional
+    public PostResponse create(CreateBlogPostRequest req, Claims claims) {
+        var author = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (!req.publishToSite() && !req.publishToInstagram() && !req.publishToDiscord()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selecione pelo menos um destino de publicação.");
+        }
+
+        var post = new Post();
+        post.setAuthor(author);
+        post.setType(PostType.BLOG);
+        post.setStatus(PostStatus.PUBLISHED);
+        post.setTitle(req.title());
+        post.setContent(req.content());
+        post.setCoverImageUrl(req.coverImageUrl());
+        post.setPublishToSite(req.publishToSite());
+        post.setPublishToDiscord(req.publishToDiscord());
+        post.setPublishToInstagram(req.publishToInstagram());
+
+        if (req.categorySlug() != null) {
+            var category = categoryRepo.findBySlug(req.categorySlug())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não encontrada"));
+            post.setCategory(category);
+        }
+
+        if (req.tagSlugs() != null && !req.tagSlugs().isEmpty()) {
+            post.setTags(tagRepo.findBySlugIn(req.tagSlugs()));
+        }
+
+        if (req.imageUrls() != null && !req.imageUrls().isEmpty()) {
+            var images = new LinkedHashSet<PostImage>();
+            for (int i = 0; i < req.imageUrls().size(); i++) {
+                var img = new PostImage();
+                img.setPost(post);
+                img.setUrl(req.imageUrls().get(i));
+                img.setPosition(i);
+                images.add(img);
+            }
+            post.setImages(images);
+        }
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> list() {
+        return postRepo.findByTypeAndStatusFetched(PostType.BLOG, PostStatus.PUBLISHED)
+                .stream().map(PostResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PostResponse getById(UUID id, Claims claims) {
+        var post = postRepo.findByIdFetched(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (post.getType() != PostType.BLOG || post.getStatus() != PostStatus.PUBLISHED) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return PostResponse.from(post);
+    }
+
+    @Transactional
+    public PostResponse update(UUID id, UpdateBlogPostRequest req, Claims claims) {
+        var post = postRepo.findByIdFetched(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.BLOG) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        var author = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (!post.getAuthor().getId().equals(author.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Só o autor pode editar este post");
+        }
+
+        post.setTitle(req.title());
+        post.setContent(req.content());
+        post.setCoverImageUrl(req.coverImageUrl());
+        post.setPublishToSite(req.publishToSite());
+        post.setPublishToDiscord(req.publishToDiscord());
+        post.setPublishToInstagram(req.publishToInstagram());
+
+        if (req.categorySlug() != null) {
+            var category = categoryRepo.findBySlug(req.categorySlug())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não encontrada"));
+            post.setCategory(category);
+        } else {
+            post.setCategory(null);
+        }
+
+        if (req.tagSlugs() != null) {
+            post.setTags(tagRepo.findBySlugIn(req.tagSlugs()));
+        }
+
+        if (req.imageUrls() != null) {
+            post.getImages().clear();
+            for (int i = 0; i < req.imageUrls().size(); i++) {
+                var img = new PostImage();
+                img.setPost(post);
+                img.setUrl(req.imageUrls().get(i));
+                img.setPosition(i);
+                post.getImages().add(img);
+            }
+        }
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional
+    public void delete(UUID id, Claims claims) {
+        var post = postRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.BLOG) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        postRepo.delete(post);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/DiscordService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.entities.discord.DiscordProperties;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+public class DiscordService {
+    private final DiscordProperties props;
+    private final RestClient restClient = RestClient.create();
+
+    private static final String DISCORD_API = "https://discord.com/api/v10";
+    private static final String TOKEN_URL = "https://discord.com/api/oauth2/token";
+
+    // Monta a URL que o usuário vai acessar pra logar
+    public String buildAuthorizationUrl(String redirectPath, String csrfToken) {
+        // var state = URLEncoder.encode(redirectPath != null ? redirectPath : "/", StandardCharsets.UTF_8);
+        var raw = (redirectPath != null ? redirectPath : "/") + "|" + csrfToken;
+        var state = Base64.getUrlEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+
+        return "https://discord.com/api/oauth2/authorize" +
+                "?client_id=" + props.clientId() +
+                "&redirect_uri=" + URLEncoder.encode(props.redirectUri(), StandardCharsets.UTF_8) +
+                "&response_type=code" +
+                "&scope=identify%20email%20guilds.members.read" +
+                "&guild_id=" + props.guildId() +
+                "&state=" + state;
+    }
+
+    // Troca o code pelo access token do Discord
+    public String exchangeCodeForToken(String code) {
+        var response = restClient.post()
+                .uri(TOKEN_URL)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body("client_id=" + props.clientId() +
+                        "&client_secret=" + props.clientSecret() +
+                        "&grant_type=authorization_code" +
+                        "&code=" + code +
+                        "&redirect_uri=" + URLEncoder.encode(props.redirectUri(), StandardCharsets.UTF_8))
+                .retrieve()
+                .body(Map.class);
+
+        return (String) response.get("access_token");
+    }
+
+    // Busca os dados do usuário com o token dele
+    public Map<String, Object> fetchUser(String accessToken) {
+        return restClient.get()
+                .uri(DISCORD_API + "/users/@me")
+                .header("Authorization", "Bearer " + accessToken)
+                .retrieve()
+                .body(Map.class);
+    }
+
+    // Busca as roles do usuário no SEU servidor — usa o Bot Token
+    public List<String> fetchUserRoles(String userId) {
+        try {
+            var member = restClient.get()
+                    .uri(DISCORD_API + "/guilds/" + props.guildId() + "/members/" + userId)
+                    .header("Authorization", "Bot " + props.botToken())
+                    .retrieve()
+                    .body(Map.class);
+
+            return (List<String>) member.get("roles");
+        } catch (Exception e) {
+            // Usuário não está no servidor
+            return List.of();
+        }
+    }
+
+    public List<Map<String, Object>> fetchGuildRoles() {
+        return restClient.get()
+                .uri(DISCORD_API + "/guilds/" + props.guildId() + "/roles")
+                .header("Authorization", "Bot " + props.botToken())
+                .retrieve()
+                .body(List.class);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/ForumService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.dtos.request.CreateForumPostRequest;
+import com.escravosdev.api.dtos.request.UpdateForumPostRequest;
+import com.escravosdev.api.dtos.response.PostResponse;
+import com.escravosdev.api.entities.Post;
+import com.escravosdev.api.entities.PostImage;
+import com.escravosdev.api.entities.discord.DiscordRoles;
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
+import com.escravosdev.api.repo.CategoryRepo;
+import com.escravosdev.api.repo.PostRepo;
+import com.escravosdev.api.repo.TagRepo;
+import com.escravosdev.api.repo.UserRepo;
+import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+public class ForumService {
+
+    private final PostRepo postRepo;
+    private final UserRepo userRepo;
+    private final CategoryRepo categoryRepo;
+    private final TagRepo tagRepo;
+
+    private final VoteService voteService;
+
+    @Transactional
+    public PostResponse create(CreateForumPostRequest req, Claims claims) {
+        var author = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (author.isMuted() || author.isBanned()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você está impedido de postar");
+        }
+
+        var post = new Post();
+        post.setAuthor(author);
+        post.setType(PostType.FORUM);
+        post.setStatus(PostStatus.PENDING_APPROVAL);
+        post.setTitle(req.title());
+        post.setContent(req.content());
+        post.setCoverImageUrl(req.coverImageUrl());
+
+        if (req.categorySlug() != null) {
+            var category = categoryRepo.findBySlug(req.categorySlug())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não encontrada"));
+            post.setCategory(category);
+        }
+
+        if (req.tagSlugs() != null && !req.tagSlugs().isEmpty()) {
+            post.setTags(tagRepo.findBySlugIn(req.tagSlugs()));
+        }
+
+        if (req.imageUrls() != null && !req.imageUrls().isEmpty()) {
+            var images = new LinkedHashSet<PostImage>();
+            for (int i = 0; i < req.imageUrls().size(); i++) {
+                var img = new PostImage();
+                img.setPost(post);
+                img.setUrl(req.imageUrls().get(i));
+                img.setPosition(i);
+                images.add(img);
+            }
+            post.setImages(images);
+        }
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> list(Claims claims) {
+        return postRepo.findByTypeAndStatusFetched(PostType.FORUM, PostStatus.PUBLISHED)
+                .stream().map(post -> {
+                    var votes = voteService.buildPostVoteResponse(post.getId(), claims);
+                    return PostResponse.from(post, votes);
+                }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PostResponse getById(UUID id, Claims claims) {
+        var post = postRepo.findByIdFetched(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (post.getType() != PostType.FORUM || post.getStatus() != PostStatus.PUBLISHED) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        var votes = voteService.buildPostVoteResponse(id, claims);
+        return PostResponse.from(post, votes);
+    }
+
+    @Transactional
+    public PostResponse update(UUID id, UpdateForumPostRequest req, Claims claims) {
+        var post = postRepo.findByIdFetched(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.FORUM) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        var author = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (!post.getAuthor().getId().equals(author.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Só o autor pode editar este post");
+        }
+
+        post.setTitle(req.title());
+        post.setContent(req.content());
+        post.setCoverImageUrl(req.coverImageUrl());
+
+        // volta pra pending se já estava publicado
+        if (post.getStatus() == PostStatus.PUBLISHED) {
+            post.setStatus(PostStatus.PENDING_APPROVAL);
+            post.setApprovedBy(null);
+            post.setApprovedAt(null);
+        }
+
+        if (req.categorySlug() != null) {
+            var category = categoryRepo.findBySlug(req.categorySlug())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não encontrada"));
+            post.setCategory(category);
+        } else {
+            post.setCategory(null);
+        }
+
+        if (req.tagSlugs() != null) {
+            post.setTags(tagRepo.findBySlugIn(req.tagSlugs()));
+        }
+
+        if (req.imageUrls() != null) {
+            post.getImages().clear();
+            for (int i = 0; i < req.imageUrls().size(); i++) {
+                var img = new PostImage();
+                img.setPost(post);
+                img.setUrl(req.imageUrls().get(i));
+                img.setPosition(i);
+                post.getImages().add(img);
+            }
+        }
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional
+    public void delete(UUID id, Claims claims) {
+        var post = postRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.FORUM) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        // autor ou ADM pode deletar
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        boolean isAuthor = post.getAuthor().getId().equals(user.getId());
+        boolean isAdm    = DiscordRoles.isAdm(claims);
+
+        if (!isAuthor && !isAdm) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sem permissão para deletar este post");
+        }
+
+        postRepo.delete(post);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/services/QuestionService.java">
+package com.escravosdev.api.services;
+
+import com.escravosdev.api.dtos.request.CreateQuestionRequest;
+import com.escravosdev.api.dtos.response.PostResponse;
+import com.escravosdev.api.entities.Post;
+import com.escravosdev.api.entities.enums.PostStatus;
+import com.escravosdev.api.entities.enums.PostType;
+import com.escravosdev.api.repo.CategoryRepo;
+import com.escravosdev.api.repo.PostRepo;
+import com.escravosdev.api.repo.TagRepo;
+import com.escravosdev.api.repo.UserRepo;
+import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class QuestionService {
+
+    private final PostRepo postRepo;
+    private final UserRepo userRepo;
+    private final CategoryRepo categoryRepo;
+    private final TagRepo tagRepo;
+
+    @Transactional
+    public PostResponse create(CreateQuestionRequest req, Claims claims) {
+        var author = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (author.isMuted() || author.isBanned()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você está impedido de postar");
+        }
+
+        var post = new Post();
+        post.setAuthor(author);
+        post.setType(PostType.QUESTION);
+        post.setStatus(PostStatus.PENDING_APPROVAL);
+        post.setTitle(req.title());
+        post.setContent(req.content());
+
+        if (req.categorySlug() != null) {
+            var category = categoryRepo.findBySlug(req.categorySlug())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não encontrada"));
+            post.setCategory(category);
+        }
+
+        if (req.tagSlugs() != null && !req.tagSlugs().isEmpty()) {
+            post.setTags(tagRepo.findBySlugIn(req.tagSlugs()));
+        }
+
+        return PostResponse.from(postRepo.save(post));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> list() {
+        return postRepo.findByTypeAndStatusInFetched(
+                PostType.QUESTION,
+                List.of(PostStatus.PUBLISHED, PostStatus.CLOSED)
+        ).stream().map(PostResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PostResponse getById(UUID id) {
+        var post = postRepo.findByIdFetched(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (post.getType() != PostType.QUESTION ||
+                (post.getStatus() != PostStatus.PUBLISHED && post.getStatus() != PostStatus.CLOSED)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return PostResponse.from(post);
+    }
+}
+</file>
+
+<file path="src/main/java/com/escravosdev/api/controllers/AuthController.java">
+package com.escravosdev.api.controllers;
+
+import com.escravosdev.api.dtos.response.UserResponse;
+import com.escravosdev.api.entities.CsrfToken;
+import com.escravosdev.api.entities.discord.*;
+import com.escravosdev.api.entities.User;
+import com.escravosdev.api.repo.CsrfTokenRepo;
+import com.escravosdev.api.repo.GuildRoleRepo;
+import com.escravosdev.api.repo.UserRepo;
+import com.escravosdev.api.repo.UserRoleRepo;
+import com.escravosdev.api.services.AuthService;
+import com.escravosdev.api.services.DiscordService;
+import com.escravosdev.api.services.JwtService;
+import io.jsonwebtoken.Claims;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Slf4j
+@RestController
+@RequestMapping("/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final DiscordService discordService;
+    private final AuthService authService;
+    private final DiscordProperties props;
+    private final UserRepo userRepo;
+
+    private final CsrfTokenRepo csrfTokenRepo;
+
+    // Frontend chama isso pra iniciar o login
+    
+    @GetMapping("/discord")
+    public ResponseEntity<Map<String, Object>> getAuthUrl(
+            @RequestParam(required = false, defaultValue="/") String redirect
+    ) {
+        log.info("redirect recebido: {}", redirect);
+        var csrfToken = UUID.randomUUID().toString();
+        var entity = new CsrfToken();
+        entity.setToken(csrfToken);
+        csrfTokenRepo.save(entity);
+
+        return ResponseEntity.ok(Map.of("url", this.discordService.buildAuthorizationUrl(redirect, csrfToken)));
+    }
+
+    // Discord redireciona aqui após o usuário autorizar
+    
+    @GetMapping("/discord/callback")
+    public ResponseEntity<Void> handleCallback(
+            @RequestParam String code,
+            @RequestParam(required = false, defaultValue = "/") String state
+    ) {
+        log.info("Callback recebido — code: {}, state: {}", code, state);
+        var decoded   = new String(Base64.getUrlDecoder().decode(state), StandardCharsets.UTF_8);
+        log.info("State decodificado: {}", decoded);
+
+        var parts     = decoded.split("\\|", 2);
+        var redirectPath = parts[0];
+        var csrfToken    = parts[1];
+        log.info("Parts length: {}", parts.length);
+
+        var csrfEntity = csrfTokenRepo.findById(csrfToken).orElse(null);
+        if (csrfEntity == null || Duration.between(csrfEntity.getCreatedAt(), Instant.now()).toMinutes() > 30) {
+            csrfTokenRepo.deleteById(csrfToken); // limpa se expirado
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        csrfTokenRepo.deleteById(csrfToken); // one-time use
+
+        var jwt = authService.processCallback(code, redirectPath);
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, props.frontendUrl() + redirectPath + "?token=" + jwt)
+                .build();
+
+    }
+
+    // Rota pra checar quem está logado
+    
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, Object>> me() {
+        var claims = getClaims();
+        var user = userRepo.findByDiscordId(claims.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        return ResponseEntity.ok(Map.of(
+                "user",        UserResponse.from(user),
+                "permissions", Map.of(
+                        "blog",    Map.of("canPost",   DiscordRoles.canCreateBlogPost(claims),
+                                          "canComment", DiscordRoles.canCommentBlog(claims)),
+                        "forum",   Map.of("canPost",   DiscordRoles.canCreateForumPost(claims),
+                                          "canComment", DiscordRoles.canCommentForum(claims)),
+                        "duvidas", Map.of("canPost",   DiscordRoles.canCreateDuvida(claims),
+                                          "canAnswer",  DiscordRoles.canAnswerDuvida(claims))
+                )
+        ));
+    }
+
+    private Claims getClaims() {
+        return (Claims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+}
+</file>
+
+<file path="src/main/resources/application.properties">
+spring.application.name=api
+spring.profiles.active=local
+
+spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+spring.jpa.properties.hibernate.show_sql=false
+
+discord.client-id=1469525847919821026
+discord.client-secret=JYnbDReh3sNoYKj1hyp2IYbR53WWRuHf
+discord.guild-id=1432454782278434931
+discord.redirect-uri=https://bernita-napless-datedly.ngrok-free.dev/auth/discord/callback
+discord.frontend-url=http://localhost:4200
+
+jwt.expiration=86400000
+
+# https://discord.com/oauth2/authorize?client_id=1469525847919821026&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Flogin%2Foauth2%2Fcode%2Fdiscord&scope=identify+guilds+email+guilds.members.read
+# https://discord.com/oauth2/authorize?client_id=1469525847919821026&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Flogin%2Foauth2%2Fcode%2Fdiscord&scope=identify+guilds+email+guilds.members.read
+
+spring.datasource.url=jdbc:postgresql://localhost:5432/servo_db
+spring.datasource.username=servo_user
+spring.datasource.password=servo_pass
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+spring.jpa.open-in-view=false
+
+spring.servlet.multipart.max-file-size=100MB
+spring.servlet.multipart.max-request-size=110MB
+upload.dir=uploads
+upload.base-url=https://bernita-napless-datedly.ngrok-free.dev/uploads
+
+logging.level.org.springframework.context=DEBUG
+</file>
+
+<file path="src/main/java/com/escravosdev/api/config/SecurityConfig.java">
+package com.escravosdev.api.config;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
+@Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthFilter;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/health",
+                                "/auth/discord",
+                                "/auth/discord/callback",
+                                "/blog",
+                                "/blog/**",
+                                "/forum",
+                                "/forum/**",
+                                "/questions",
+                                "/questions/**",
+                                "/comments/post/**",
+                                "/uploads/**",
+                                "/categories",
+                                "/categories/**",
+                                "/tags",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        var config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(
+                "http://localhost:4200",
+                "http://localhost:5173",
+                "https://bernita-napless-datedly.ngrok-free.dev"
+        ));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true); // obrigatório pra cookie funcionar
+
+        var source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> { throw new UsernameNotFoundException("Use JWT"); };
+    }
+}
+</file>
+
+</files>

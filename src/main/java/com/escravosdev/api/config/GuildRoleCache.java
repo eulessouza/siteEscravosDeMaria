@@ -85,12 +85,6 @@ public class GuildRoleCache {
 
                 role.setUpdatedAt(Instant.now());
                 guildRoleRepo.save(role);
-
-                log.info("[{}] {} | cor: {} | gradiente: {} | ícone: {}",
-                        id, name,
-                        role.getColor() != null ? role.getColor() : "sem cor",
-                        gradient != null ? gradient : "sem gradiente",
-                        iconHash != null ? "sim" : "não");
             }
 
             log.info("Sync concluído — {} roles salvas.", roles.size());

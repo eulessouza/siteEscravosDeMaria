@@ -5,7 +5,7 @@ import com.escravosdev.api.dtos.request.UpdateForumPostRequest;
 import com.escravosdev.api.dtos.response.PostResponse;
 import com.escravosdev.api.services.ForumService;
 import io.jsonwebtoken.Claims;
-import io.swagger.v3.oas.annotations.Operation;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,26 +25,26 @@ public class ForumController {
 
     private final ForumService forumService;
 
-    @Operation(summary = "Listar posts do fórum")
+    
     @GetMapping
     public ResponseEntity<List<PostResponse>> list() {
         return ResponseEntity.ok(forumService.list(getOptionalClaims()));
     }
 
-    @Operation(summary = "Buscar post por ID")
+    
     @GetMapping("/{id}")
     public ResponseEntity<PostResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(forumService.getById(id, getOptionalClaims()));
     }
 
-    @Operation(summary = "Criar post no fórum")
+    
     @PostMapping
     public ResponseEntity<PostResponse> create(@RequestBody CreateForumPostRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(forumService.create(req, getClaims()));
     }
 
-    @Operation(summary = "Editar post do fórum — autor")
+    
     @PutMapping("/{id}")
     public ResponseEntity<PostResponse> update(
             @PathVariable UUID id,
@@ -53,7 +53,7 @@ public class ForumController {
         return ResponseEntity.ok(forumService.update(id, req, getClaims()));
     }
 
-    @Operation(summary = "Deletar post do fórum — autor ou ADM")
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         forumService.delete(id, getClaims());

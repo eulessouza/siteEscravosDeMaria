@@ -16,7 +16,9 @@ import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.sql.Update;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,6 +84,18 @@ public class BlogService {
     public List<PostResponse> list() {
         return postRepo.findByTypeAndStatusFetched(PostType.BLOG, PostStatus.PUBLISHED)
                 .stream().map(PostResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> getRecentPublished(int limit) {
+        if (limit <= 0) limit = 6;
+
+        var pageable = PageRequest.of(0, limit, Sort.by("createdAt").descending());
+
+        return postRepo.findRecentPublished(PostType.BLOG, PostStatus.PUBLISHED, pageable)
+                .stream()
+                .map(PostResponse::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)

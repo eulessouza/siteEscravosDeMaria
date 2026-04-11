@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -77,5 +78,13 @@ public class QuestionService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         return PostResponse.from(post);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<PostResponse> getLastAnswered() {
+        var statuses = List.of(PostStatus.PUBLISHED, PostStatus.CLOSED);
+
+        return postRepo.findLastAnsweredQuestion(PostType.QUESTION, statuses)
+                .map(PostResponse::from);   // sem votos, pois é só exibição na home
     }
 }

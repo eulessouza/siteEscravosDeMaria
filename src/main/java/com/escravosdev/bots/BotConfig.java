@@ -21,7 +21,7 @@ public class BotConfig {
     public JDA jda(BotReadyListener botReadyListener, VerificationListener verificationListener) throws InterruptedException {
         log.info("Iniciando bot...");
 
-        return JDABuilder.createDefault(props.botToken())
+        var jda = JDABuilder.createDefault(props.botToken())
                 .enableIntents(
                         GatewayIntent.GUILD_MEMBERS,
                         GatewayIntent.GUILD_MESSAGES,
@@ -29,7 +29,12 @@ public class BotConfig {
                         GatewayIntent.MESSAGE_CONTENT
                 )
                 .addEventListeners(botReadyListener, verificationListener)
-                .build()
-                .awaitReady();
+                .build();
+
+        log.info("JDA build() concluído, aguardando ready...");
+        jda.awaitReady();
+        log.info("JDA awaitReady() concluído — status: {}", jda.getStatus());
+
+        return jda;
     }
 }

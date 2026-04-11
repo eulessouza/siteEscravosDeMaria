@@ -5,7 +5,7 @@ import com.escravosdev.api.dtos.response.CommentResponse;
 import com.escravosdev.api.entities.discord.DiscordRoles;
 import com.escravosdev.api.services.CommentService;
 import io.jsonwebtoken.Claims;
-import io.swagger.v3.oas.annotations.Operation;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public class CommentController {
 
     private final CommentService commentService;
 
-    @Operation(summary = "Listar comentários de um post")
+    
     @GetMapping("/post/{postId}")
     public ResponseEntity<List<CommentResponse>> listByPost(@PathVariable UUID postId) {
         Claims claims = null;
@@ -34,7 +34,7 @@ public class CommentController {
         return ResponseEntity.ok(commentService.listByPost(postId, claims));
     }
 
-    @Operation(summary = "Criar comentário")
+    
     @PostMapping("/post/{postId}")
     public ResponseEntity<CommentResponse> create(
             @PathVariable UUID postId,
@@ -44,7 +44,7 @@ public class CommentController {
                 .body(commentService.create(postId, req, getClaims()));
     }
 
-    @Operation(summary = "Deletar comentário — ADM")
+    
     @DeleteMapping("/{commentId}")
     public ResponseEntity<CommentResponse> delete(@PathVariable UUID commentId) {
         requireAdm();

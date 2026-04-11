@@ -15,6 +15,7 @@ import com.escravosdev.api.repo.UserRepo;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -83,6 +84,28 @@ public class ForumService {
                     var votes = voteService.buildPostVoteResponse(post.getId(), claims);
                     return PostResponse.from(post, votes);
                 }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> getTrending(int limit, Claims claims) {
+        if (limit <= 0) limit = 5;
+
+        var pageable = PageRequest.of(0, limit);   // sem sort aqui, pois já está na query
+
+        List<Post> posts = postRepo.findTrendingForum(
+                PostType.FORUM,
+                PostStatus.PUBLISHED,
+                pageable
+        );
+
+
+        return posts.stream()
+                .map(post -> {
+
+                    var votes = voteService.buildPostVoteResponse(post.getId(), claims);
+                    return PostResponse.from(post, votes);
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)

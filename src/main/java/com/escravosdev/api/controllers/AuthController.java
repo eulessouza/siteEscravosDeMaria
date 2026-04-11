@@ -12,7 +12,7 @@ import com.escravosdev.api.services.AuthService;
 import com.escravosdev.api.services.DiscordService;
 import com.escravosdev.api.services.JwtService;
 import io.jsonwebtoken.Claims;
-import io.swagger.v3.oas.annotations.Operation;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -45,11 +45,12 @@ public class AuthController {
     private final CsrfTokenRepo csrfTokenRepo;
 
     // Frontend chama isso pra iniciar o login
-    @Operation(summary = "Login com Discord", description = "Retorna a URL de autorização do Discord")
+    
     @GetMapping("/discord")
     public ResponseEntity<Map<String, Object>> getAuthUrl(
             @RequestParam(required = false, defaultValue="/") String redirect
     ) {
+        log.info("redirect recebido: {}", redirect);
         var csrfToken = UUID.randomUUID().toString();
         var entity = new CsrfToken();
         entity.setToken(csrfToken);
@@ -59,7 +60,7 @@ public class AuthController {
     }
 
     // Discord redireciona aqui após o usuário autorizar
-    @Operation(summary = "Callback do Discord", description = "Troca o code pelo JWT")
+    
     @GetMapping("/discord/callback")
     public ResponseEntity<Void> handleCallback(
             @RequestParam String code,
@@ -90,7 +91,7 @@ public class AuthController {
     }
 
     // Rota pra checar quem está logado
-    @Operation(summary = "Info do usuário", description = "Retorna as informações do usuário do Discord")
+    
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me() {
         var claims = getClaims();

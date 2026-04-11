@@ -1,7 +1,7 @@
 package com.escravosdev.api.controllers;
 
 import com.escravosdev.api.services.UploadService;
-import io.swagger.v3.oas.annotations.Operation;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ public class UploadController {
 
     private final UploadService uploadService;
 
-    @Operation(summary = "Upload de imagem para o blog — ADM")
+    
     @PostMapping("/blog")
     public ResponseEntity<Map<String, String>> uploadBlog(
             @RequestParam("file") MultipartFile file
@@ -26,7 +26,7 @@ public class UploadController {
         return ResponseEntity.ok(Map.of("url", url));
     }
 
-    @Operation(summary = "Upload de arquivo para o fórum")
+    
     @PostMapping("/forum")
     public ResponseEntity<Map<String, String>> uploadForum(
             @RequestParam("file") MultipartFile file
@@ -35,7 +35,7 @@ public class UploadController {
         return ResponseEntity.ok(Map.of("url", url));
     }
 
-    @Operation(summary = "Upload múltiplo para o fórum — até 10 arquivos")
+    
     @PostMapping("/forum/batch")
     public ResponseEntity<Map<String, List<String>>> uploadForumBatch(
             @RequestParam("files") List<MultipartFile> files

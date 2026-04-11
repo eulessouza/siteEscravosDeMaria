@@ -61,7 +61,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         var config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
-                "http://localhost:3000",
+                "http://localhost:4200",
                 "http://localhost:5173",
                 "https://bernita-napless-datedly.ngrok-free.dev"
         ));

@@ -9,6 +9,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,11 +28,20 @@ import static com.escravosdev.bots.verification.VerificationConstants.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class VerificationService {
+public class VerificationService implements ApplicationContextAware {
 
-    @Lazy
-    private final JDA jda;
+    private ApplicationContext context;
     private final VerificationAiService aiService;
+
+    private JDA jda() {
+        return context.getBean(JDA.class);
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext ctx) {
+        this.context = ctx;
+    }
+
 
     // ticketChannelId → session
     private final Map<String, VerificationSession> sessions = new ConcurrentHashMap<>();
@@ -47,7 +58,7 @@ public class VerificationService {
         );
         sessions.put(ticketChannelId, session);
 
-        var channel = jda.getTextChannelById(ticketChannelId);
+        var channel = jda().getTextChannelById(ticketChannelId);
         if (channel == null) return;
 
         channel.sendMessage(PERGUNTA_1.formatted(member.getAsMention())).queue();
@@ -74,7 +85,7 @@ public class VerificationService {
     private void processarR1(VerificationSession session, String resposta, String channelId) {
         session.setResposta1(resposta);
 
-        var channel = jda.getTextChannelById(channelId);
+        var channel = jda().getTextChannelById(channelId);
         if (channel == null) return;
 
         channel.sendMessage("_Analisando sua resposta..._").queue(msg -> {
@@ -100,7 +111,7 @@ public class VerificationService {
     private void processarR2(VerificationSession session, String resposta, String channelId) {
         session.setResposta2(resposta);
 
-        var channel = jda.getTextChannelById(channelId);
+        var channel = jda().getTextChannelById(channelId);
         if (channel == null) return;
 
         channel.sendMessage("_Analisando sua resposta..._").queue(msg -> {
@@ -161,7 +172,7 @@ public class VerificationService {
 
         session.setStep(VerificationSession.Step.CONCLUIDO);
 
-        var channel = jda.getTextChannelById(ticketChannelId);
+        var channel = jda().getTextChannelById(ticketChannelId);
         if (channel != null) {
             channel.sendMessage("""
                     ✅ Respostas recebidas! Sua verificação está sendo avaliada pelos administradores.
@@ -175,7 +186,7 @@ public class VerificationService {
     // ── Briefing para ADM ────────────────────────────────────────────────────
 
     private void enviarBriefingAdm(VerificationSession session) {
-        var canal = jda.getTextChannelById(CANAL_ADM);
+        var canal = jda().getTextChannelById(CANAL_ADM);
         if (canal == null) {
             log.error("Canal ADM não encontrado: {}", CANAL_ADM);
             return;
@@ -213,7 +224,7 @@ public class VerificationService {
 
     private void notificarAdmProblema(VerificationSession session, String etapa,
                                       String resposta, String analise) {
-        var canal = jda.getTextChannelById(CANAL_ADM);
+        var canal = jda().getTextChannelById(CANAL_ADM);
         if (canal == null) return;
 
         var embed = new EmbedBuilder()
@@ -242,7 +253,7 @@ public class VerificationService {
         var session = buscarSessionPorUser(userId);
         if (session == null) return;
 
-        var guild = jda.getGuilds().get(0);
+        var guild = jda().getGuilds().get(0);
         guild.retrieveMemberById(userId).queue(member -> {
 
             // remove Plebeu e Meeiro
@@ -270,7 +281,7 @@ public class VerificationService {
             }
 
             // ticket
-            var ticket = jda.getTextChannelById(session.getTicketChannelId());
+            var ticket = jda().getTextChannelById(session.getTicketChannelId());
             if (ticket != null) {
                 ticket.sendMessage("""
                     ✅ Verificação concluída! Bem-vindo(a) ao **Servo de Maria**, %s!
@@ -289,9 +300,9 @@ public class VerificationService {
         var session = buscarSessionPorUser(userId);
         if (session == null) return;
 
-        var guild = jda.getGuilds().get(0);
+        var guild = jda().getGuilds().get(0);
         guild.retrieveMemberById(userId).queue(member -> {
-            var ticket = jda.getTextChannelById(session.getTicketChannelId());
+            var ticket = jda().getTextChannelById(session.getTicketChannelId());
             if (ticket != null) {
                 ticket.sendMessage("""
                         ❌ Infelizmente sua solicitação de entrada não foi aprovada.
@@ -316,7 +327,7 @@ public class VerificationService {
 
         session.setStep(VerificationSession.Step.AGUARDANDO_R2);
 
-        var channel = jda.getTextChannelById(session.getTicketChannelId());
+        var channel = jda().getTextChannelById(session.getTicketChannelId());
         if (channel != null) {
             channel.sendMessage("""
                     ▶️ Sua verificação foi retomada por um administrador.
@@ -349,7 +360,7 @@ public class VerificationService {
     }
 
     private void enviarLembrete(VerificationSession session) {
-        var channel = jda.getTextChannelById(session.getTicketChannelId());
+        var channel = jda().getTextChannelById(session.getTicketChannelId());
         if (channel == null) return;
 
         session.setLembretes(session.getLembretes() + 1);
@@ -365,7 +376,7 @@ public class VerificationService {
     }
 
     private void fecharPorTimeout(VerificationSession session) {
-        var channel = jda.getTextChannelById(session.getTicketChannelId());
+        var channel = jda().getTextChannelById(session.getTicketChannelId());
         if (channel != null) {
             channel.sendMessage("""
                     ⏰ Ticket encerrado por inatividade.

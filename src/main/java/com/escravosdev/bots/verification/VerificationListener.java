@@ -27,47 +27,78 @@ public class VerificationListener extends ListenerAdapter {
         if (event.getChannelType() != ChannelType.TEXT) return;
 
         var channel = event.getChannel().asTextChannel();
-        var name    = channel.getName();
+        if (!channel.getName().startsWith("ticket-")) return;
 
-        // detecta ticket-XXXX
-        if (!name.startsWith("ticket-")) return;
+        log.info("Novo ticket detectado: {}", channel.getName());
 
-        log.info("Novo ticket detectado: {}", name);
+        // aguarda 5s pro Ticket Tool configurar o canal e adicionar o membro
+        channel.getJDA().getGatewayPool().schedule(() -> {
+            var meeiro = channel.getGuild().getRoleById(ROLE_MEEIRO);
+            if (meeiro == null) {
+                log.error("Cargo Meeiro não encontrado: {}", ROLE_MEEIRO);
+                return;
+            }
 
-        // aguarda um pouco pro Ticket Tool configurar o canal
-        channel.getGuild().findMembersWithRoles(
-                channel.getGuild().getRoleById(ROLE_MEEIRO)
-        ).onSuccess(members -> {
-            // busca o membro com acesso ao canal que seja Meeiro
-            channel.getMembers().stream()
+            var membro = channel.getMembers().stream()
                     .filter(m -> !m.getUser().isBot())
-                    .filter(m -> m.getRoles().stream()
-                            .anyMatch(r -> r.getId().equals(ROLE_MEEIRO)))
-                    .findFirst()
-                    .ifPresent(member ->
-                            verificationService.iniciarVerificacao(channel.getId(), member)
-                    );
-        });
+                    .filter(m -> m.getRoles().contains(meeiro))
+                    .findFirst();
+
+            if (membro.isPresent()) {
+                log.info("Meeiro encontrado: {}", membro.get().getEffectiveName());
+                verificationService.iniciarVerificacao(channel.getId(), membro.get());
+            } else {
+                log.warn("Nenhum Meeiro encontrado no canal {} — membros visíveis: {}",
+                        channel.getName(),
+                        channel.getMembers().stream()
+                                .map(m -> m.getEffectiveName() + (m.getUser().isBot() ? "(bot)" : ""))
+                                .toList());
+            }
+        }, 7, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     // ── Mensagem recebida no ticket ──────────────────────────────────────────
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
-        if (event.getAuthor().isBot()) return;
         if (event.getChannelType() != ChannelType.TEXT) return;
 
         var channelName = event.getChannel().getName();
         if (!channelName.startsWith("ticket-")) return;
 
+        // mensagem do Ticket Tool abrindo o ticket
+        if (event.getAuthor().isBot() && event.getMessage().getMentions().getUsers().size() > 0) {
+            var session = verificationService.getSession(event.getChannel().getId());
+            if (session != null) return; // sessão já existe
+
+            var guild   = event.getGuild();
+            var meeiro  = guild.getRoleById(ROLE_MEEIRO);
+            if (meeiro == null) return;
+
+            // pega o primeiro usuário mencionado que tem cargo Meeiro
+            event.getMessage().getMentions().getUsers().stream()
+                    .map(u -> guild.getMember(u))
+                    .filter(m -> m != null && !m.getUser().isBot())
+                    .filter(m -> m.getRoles().contains(meeiro))
+                    .findFirst()
+                    .ifPresent(member -> {
+                        log.info("Meeiro detectado via mensagem do Ticket Tool: {}", member.getEffectiveName());
+                        verificationService.iniciarVerificacao(event.getChannel().getId(), member);
+                    });
+            return;
+        }
+
+        // mensagem normal do usuário
         var session = verificationService.getSession(event.getChannel().getId());
         if (session == null) return;
+        if (event.getAuthor().isBot()) return;
 
         verificationService.processarMensagem(
                 event.getChannel().getId(),
                 event.getAuthor().getId(),
                 event.getMessage().getContentRaw()
         );
+
     }
 
     // ── Select menu (pings) ──────────────────────────────────────────────────

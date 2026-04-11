@@ -6,7 +6,7 @@ import com.escravosdev.api.dtos.response.PostResponse;
 import com.escravosdev.api.entities.discord.DiscordRoles;
 import com.escravosdev.api.services.BlogService;
 import io.jsonwebtoken.Claims;
-import io.swagger.v3.oas.annotations.Operation;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,19 +27,19 @@ public class BlogController {
 
     private final BlogService blogService;
 
-    @Operation(summary = "Listar todos os posts do blog")
+    
     @GetMapping
     public ResponseEntity<List<PostResponse>> list() {
         return ResponseEntity.ok(blogService.list());
     }
 
-    @Operation(summary = "Buscar post por ID")
+    
     @GetMapping("/{id}")
     public ResponseEntity<PostResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(blogService.getById(id, getOptionalClaims()));
     }
 
-    @Operation(summary = "Criar post no blog — só ADM")
+    
     @PostMapping
     public ResponseEntity<PostResponse> create(@RequestBody CreateBlogPostRequest req) {
         var claims = getClaims();
@@ -49,7 +49,7 @@ public class BlogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(blogService.create(req, claims));
     }
 
-    @Operation(summary = "Editar post do blog — autor")
+    
     @PutMapping("/{id}")
     public ResponseEntity<PostResponse> update(
             @PathVariable UUID id,
@@ -58,7 +58,7 @@ public class BlogController {
         return ResponseEntity.ok(blogService.update(id, req, getClaims()));
     }
 
-    @Operation(summary = "Deletar post do blog — ADM")
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         var claims = getClaims();
